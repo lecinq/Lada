@@ -1,0 +1,100 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Style TargetType="ContextMenu">
+        <Setter Property="Background" Value="{DynamicResource LadaBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource LadaBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="{DynamicResource LadaBorderThickness}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{DynamicResource LadaCornerRadius}"
+                            Effect="{DynamicResource LadaShadowEffect}"
+                            Padding="4">
+                        <StackPanel IsItemsHost="True"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="Separator">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Separator">
+                    <Border Height="1" Margin="6,4" Background="{DynamicResource LadaBorderBrush}"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="MenuItem">
+        <Setter Property="Foreground" Value="{DynamicResource TitleTextBrush}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource LadaFontFamily}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Padding" Value="8,6"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="4" Margin="2,1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Ellipse x:Name="CheckGlyph" Grid.Column="0" Width="7" Height="7"
+                                     Fill="{DynamicResource AccentBrush}"
+                                     Visibility="Collapsed"
+                                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                            <ContentPresenter Grid.Column="1" ContentSource="Header"
+                                               RecognizesAccessKey="True"
+                                               VerticalAlignment="Center"
+                                               Margin="{TemplateBinding Padding}"/>
+
+                            <Path x:Name="SubmenuArrow" Grid.Column="2"
+                                  Data="M0,0 L4,4 L0,8" Stretch="Uniform" Width="6" Height="8"
+                                  Stroke="{DynamicResource SecondaryTextBrush}" StrokeThickness="1.4"
+                                  Visibility="Collapsed"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                            <Popup x:Name="Submenu" Placement="Right" AllowsTransparency="True"
+                                   Focusable="False" PopupAnimation="Fade"
+                                   IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                                <Border Background="{DynamicResource LadaBackgroundBrush}"
+                                        BorderBrush="{DynamicResource LadaBorderBrush}"
+                                        BorderThickness="{DynamicResource LadaBorderThickness}"
+                                        CornerRadius="{DynamicResource LadaCornerRadius}"
+                                        Effect="{DynamicResource LadaShadowEffect}"
+                                        Padding="4">
+                                    <StackPanel IsItemsHost="True"/>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="CheckGlyph" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="Role" Value="SubmenuHeader">
+                            <Setter TargetName="SubmenuArrow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SelectedBackgroundBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
+                            <Setter Property="Opacity" Value="0.6"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

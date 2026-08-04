@@ -1,0 +1,9 @@
+bin/
+obj/
+*.user
+.vs/
+publish-test/
+
+# Internal dev context, not for the public repo.
+DEV_NOTES.md
+docs/

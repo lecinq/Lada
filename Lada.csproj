@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <!-- Disabled: combined with UseWindowsForms, ImplicitUsings globally
+         imports System.Windows.Forms, which collides with WPF's
+         System.Windows on Application/MouseEventArgs/DragEventArgs/Cursors.
+         Every file declares its own explicit usings instead. -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Lada</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <!-- Lada.Tests lives inside this project's own directory; without this,
+       the default SDK glob also compiles the test project's files (and its
+       generated obj/ output) into Lada.csproj itself. -->
+  <ItemGroup>
+    <Compile Remove="Lada.Tests/**" />
+    <EmbeddedResource Remove="Lada.Tests/**" />
+    <None Remove="Lada.Tests/**" />
+    <Page Remove="Lada.Tests/**" />
+  </ItemGroup>
+
+</Project>

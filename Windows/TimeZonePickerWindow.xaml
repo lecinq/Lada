@@ -1,0 +1,27 @@
+<Window x:Class="Lada.Windows.TimeZonePickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Width="340" Height="400"
+        Background="{DynamicResource LadaBackgroundBrush}"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBox x:Name="SearchBox" Grid.Row="0" Margin="0,0,0,8"
+                 Foreground="{DynamicResource TitleTextBrush}"
+                 Background="Transparent"
+                 BorderBrush="{DynamicResource LadaBorderBrush}"
+                 TextChanged="SearchBox_TextChanged"/>
+
+        <ListBox x:Name="ResultsList" Grid.Row="1"
+                 Background="Transparent"
+                 Foreground="{DynamicResource TitleTextBrush}"
+                 BorderThickness="0"
+                 MouseDoubleClick="ResultsList_MouseDoubleClick"/>
+    </Grid>
+</Window>

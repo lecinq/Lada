@@ -1,0 +1,23 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="MenuStyles.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <SolidColorBrush x:Key="LadaBackgroundBrush" Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="LadaBorderBrush" Color="#FF000000"/>
+    <SolidColorBrush x:Key="LadaBorderHoverBrush" Color="#FF333333"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#FF38B6FF"/>
+    <SolidColorBrush x:Key="TitleTextBrush" Color="#FF111111"/>
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#FF111111"/>
+    <SolidColorBrush x:Key="IconHoverBackgroundBrush" Color="#FFEFEFEF"/>
+    <SolidColorBrush x:Key="SelectedBackgroundBrush" Color="#FF38B6FF"/>
+    <SolidColorBrush x:Key="SelectionMarqueeFillBrush" Color="#FF38B6FF"/>
+
+    <Thickness x:Key="LadaBorderThickness">2</Thickness>
+    <CornerRadius x:Key="LadaCornerRadius">0</CornerRadius>
+    <x:Null x:Key="LadaShadowEffect"/>
+    <FontFamily x:Key="LadaFontFamily">Segoe UI</FontFamily>
+
+</ResourceDictionary>

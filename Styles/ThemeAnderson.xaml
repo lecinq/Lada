@@ -1,0 +1,23 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="MenuStyles.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <SolidColorBrush x:Key="LadaBackgroundBrush" Color="#FF000000"/>
+    <SolidColorBrush x:Key="LadaBorderBrush" Color="#33FF33"/>
+    <SolidColorBrush x:Key="LadaBorderHoverBrush" Color="#66FF66"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#33FF33"/>
+    <SolidColorBrush x:Key="TitleTextBrush" Color="#33FF33"/>
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#1F8F1F"/>
+    <SolidColorBrush x:Key="IconHoverBackgroundBrush" Color="#1A33FF33"/>
+    <SolidColorBrush x:Key="SelectedBackgroundBrush" Color="#4D33FF33"/>
+    <SolidColorBrush x:Key="SelectionMarqueeFillBrush" Color="#3333FF33"/>
+
+    <Thickness x:Key="LadaBorderThickness">1</Thickness>
+    <CornerRadius x:Key="LadaCornerRadius">0</CornerRadius>
+    <x:Null x:Key="LadaShadowEffect"/>
+    <FontFamily x:Key="LadaFontFamily">Consolas</FontFamily>
+
+</ResourceDictionary>
