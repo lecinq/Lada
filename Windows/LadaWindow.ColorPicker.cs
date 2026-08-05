@@ -1,5 +1,6 @@
 using System;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using Lada.Resources;
 using Lada.Services;
@@ -20,6 +21,48 @@ public partial class LadaWindow
         SaturationSlider.ValueChanged += (_, _) => ApplyColorFromSliders();
         LightnessSlider.ValueChanged += (_, _) => ApplyColorFromSliders();
         ColorHexBox.TextChanged += (_, _) => ApplyColorFromHexBox();
+
+        AttachClickAnywhereToDrag(HueSlider);
+        AttachClickAnywhereToDrag(SaturationSlider);
+        AttachClickAnywhereToDrag(LightnessSlider);
+    }
+
+    // The custom ColorPickerSliderStyle (App.xaml) replaces the Track's
+    // default RepeatButtons/Thumb chrome, which breaks WPF's built-in
+    // IsMoveToPointEnabled "click then keep dragging in the same gesture"
+    // handoff to the Thumb. Handling the mouse directly here sidesteps that
+    // entirely: the slider always tracks the cursor for as long as the
+    // button stays down, whether the drag started on the thumb or anywhere
+    // else on the track.
+    private static void AttachClickAnywhereToDrag(Slider slider)
+    {
+        void SetValueFromMouse(MouseEventArgs e)
+        {
+            var x = e.GetPosition(slider).X;
+            var fraction = slider.ActualWidth > 0 ? Math.Clamp(x / slider.ActualWidth, 0, 1) : 0;
+            slider.Value = slider.Minimum + fraction * (slider.Maximum - slider.Minimum);
+        }
+
+        slider.PreviewMouseLeftButtonDown += (_, e) =>
+        {
+            slider.CaptureMouse();
+            SetValueFromMouse(e);
+            e.Handled = true;
+        };
+        slider.PreviewMouseMove += (_, e) =>
+        {
+            if (slider.IsMouseCaptured && e.LeftButton == MouseButtonState.Pressed)
+            {
+                SetValueFromMouse(e);
+            }
+        };
+        slider.PreviewMouseLeftButtonUp += (_, _) =>
+        {
+            if (slider.IsMouseCaptured)
+            {
+                slider.ReleaseMouseCapture();
+            }
+        };
     }
 
     // Called from PopulatePicker (Icon.cs) whenever the popup opens or a

@@ -27,14 +27,22 @@ public static class Strings
         "Lada, un organiseur de bureau Windows personnel avec des conteneurs semi-transparents pour tes raccourcis. Créé par Quentin Ecrepont.",
         "Lada, a personal Windows desktop organizer with semi-transparent containers for your shortcuts. Made by Quentin Ecrepont.");
 
+    public static string AboutOpenSource => Pick("Gratuit et open source :", "Free and open source:");
+
     // Lada empty-space context menu
     public static string SortByType => Pick("Trier par type", "Sort by type");
     public static string AutoSortToggle => Pick("Tri automatique des nouveaux fichiers", "Auto-sort new files");
     public static string SizePresetSubmenu => Pick("Taille prédéfinie", "Preset size");
+    public static string FitToContentMenuItem => Pick("Ajuster au contenu", "Fit to content");
     public static string NewWidgetSubmenu => Pick("Nouveau widget", "New widget");
     public static string ClockWidgetMenuItem => Pick("Horloge", "Clock");
     public static string DiskWidgetMenuItem => Pick("Espace disque", "Disk space");
     public static string TimerWidgetMenuItem => Pick("Minuteur", "Timer");
+    public static string BatteryWidgetMenuItem => Pick("Batterie", "Battery");
+    public static string MemoryWidgetMenuItem => Pick("Mémoire", "Memory");
+    public static string CpuWidgetMenuItem => Pick("Processeur", "CPU");
+    public static string GpuWidgetMenuItem => Pick("Carte graphique", "GPU");
+    public static string NetworkWidgetMenuItem => Pick("Réseau", "Network");
     public static string DeleteLadaMenuItem => Pick("Supprimer ce lada", "Delete this lada");
 
     public static string AutoOrganizeSubmenu => Pick("Auto-organisation", "Auto-organize");
@@ -97,8 +105,20 @@ public static class Strings
 
     // Disk widget
     public static string ChangeDrive => Pick("Changer de lecteur", "Change drive");
+    public static string ChangeGpu => Pick("Changer de GPU", "Change GPU");
+    public static string ChangeNetworkAdapter => Pick("Changer d'interface", "Change adapter");
+    public static string NetworkSpeed(string formattedBytes) => $"{formattedBytes}/s";
+
+    // Battery / Memory / CPU / GPU widgets
+    public static string BatteryPercent(string percent) => $"{percent}%";
+    public static string BatteryChargingSuffix => Pick(" (en charge)", " (charging)");
+    public static string MemoryUsage(string usedGb, string totalGb) => Pick($"{usedGb} / {totalGb} Go", $"{usedGb} / {totalGb} GB");
+    public static string UsagePercent(string percent) => Pick($"{percent}% utilisé", $"{percent}% used");
+    public static string TemperatureCelsius(string celsius) => $"{celsius} °C";
+    public static string FrequencyGhz(string ghz) => $"{ghz} GHz";
+    public static string DetailedViewMenuItem => Pick("Vue détaillée", "Detailed view");
     public static string DiskFreeSpace(string formattedGb) => Pick($"{formattedGb} Go libres", $"{formattedGb} GB free");
-    public static string DiskUnavailable => Pick("Indisponible", "Unavailable");
+    public static string WidgetUnavailable => Pick("Indisponible", "Unavailable");
 
     // Timer widget
     public static string TimerDurationPickerTitle => Pick("Durée du minuteur", "Timer duration");

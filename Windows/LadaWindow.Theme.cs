@@ -47,6 +47,11 @@ public partial class LadaWindow
         DisposeAllDrawerWatchers();
         DisposeAllClockTimers();
         DisposeAllDiskTimers();
+        DisposeAllBatteryTimers();
+        DisposeAllMemoryTimers();
+        DisposeAllCpuUpdates();
+        DisposeAllGpuUpdates();
+        DisposeAllNetworkUpdates();
         DisposeAllTimerWidgetTimers();
         RenderAllItems();
         ApplySelectionVisuals();

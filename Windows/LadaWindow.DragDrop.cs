@@ -195,6 +195,36 @@ public partial class LadaWindow
             return;
         }
 
+        if (item.IsBatteryWidget)
+        {
+            RenderBatteryWidget(item);
+            return;
+        }
+
+        if (item.IsMemoryWidget)
+        {
+            RenderMemoryWidget(item);
+            return;
+        }
+
+        if (item.IsCpuWidget)
+        {
+            RenderCpuWidget(item);
+            return;
+        }
+
+        if (item.IsGpuWidget)
+        {
+            RenderGpuWidget(item);
+            return;
+        }
+
+        if (item.IsNetworkWidget)
+        {
+            RenderNetworkWidget(item);
+            return;
+        }
+
         var icon = FileTypeCategorizer.Categorize(item.Path) == FileCategory.Image
             ? ImageThumbnailService.GetThumbnail(item.Path) ?? ShellIconService.GetIcon(item.Path)
             : ShellIconService.GetIcon(item.Path);

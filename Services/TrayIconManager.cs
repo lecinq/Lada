@@ -32,6 +32,7 @@ public sealed class TrayIconManager : IDisposable
     public event Action<AppLanguage>? LanguageChangeRequested;
     public event Action<bool>? HoverFadeToggleRequested;
     public event Action<bool>? MagnetismToggleRequested;
+    public event Action? AboutRequested;
 
     public TrayIconManager()
     {
@@ -62,7 +63,7 @@ public sealed class TrayIconManager : IDisposable
         _newLadaItem = new ToolStripMenuItem("", null, (_, _) => NewLadaRequested?.Invoke());
         _showAllItem = new ToolStripMenuItem("", null, (_, _) => ShowAllRequested?.Invoke());
         _arrangeItem = new ToolStripMenuItem("", null, (_, _) => ArrangeRequested?.Invoke());
-        _aboutItem = new ToolStripMenuItem("", null, (_, _) => ShowBalloon("Lada", Strings.AboutMessage));
+        _aboutItem = new ToolStripMenuItem("", null, (_, _) => AboutRequested?.Invoke());
         _quitItem = new ToolStripMenuItem("", null, (_, _) => ExitRequested?.Invoke());
 
         var menu = new ContextMenuStrip();

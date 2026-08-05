@@ -70,19 +70,23 @@ public partial class LadaWindow
             Tag = item
         };
 
+        var accent = ItemLabelAccentOverride();
+
         var driveLabel = new TextBlock
         {
             Text = item.DrivePath ?? "?",
             Style = (Style)FindResource("IconLabelStyle"),
             Margin = new Thickness(0, 0, 0, 4)
         };
+        if (accent is not null)
+            driveLabel.Foreground = accent;
 
         var freeSpaceLabel = new TextBlock
         {
             Text = "…",
             FontSize = 12,
             HorizontalAlignment = HorizontalAlignment.Center,
-            Foreground = (Brush)FindResource("TitleTextBrush"),
+            Foreground = accent ?? (Brush)FindResource("TitleTextBrush"),
             Margin = new Thickness(0, 0, 0, 4)
         };
 
@@ -91,14 +95,14 @@ public partial class LadaWindow
             Width = 0,
             Height = 6,
             HorizontalAlignment = HorizontalAlignment.Left,
-            Background = (Brush)FindResource("AccentBrush")
+            Background = accent ?? (Brush)FindResource("AccentBrush")
         };
         var barTrack = new Border
         {
             Width = DiskBarWidth,
             Height = 6,
             CornerRadius = new CornerRadius(3),
-            Background = (Brush)FindResource("IconHoverBackgroundBrush"),
+            Background = WidgetTrackBrush(accent),
             HorizontalAlignment = HorizontalAlignment.Center,
             ClipToBounds = true,
             Child = barFill
@@ -148,7 +152,7 @@ public partial class LadaWindow
                 var drive = new DriveInfo(item.DrivePath ?? "C:\\");
                 if (!drive.IsReady)
                 {
-                    freeSpaceLabel.Text = Strings.DiskUnavailable;
+                    freeSpaceLabel.Text = Strings.WidgetUnavailable;
                     barFill.Width = 0;
                     return;
                 }
@@ -165,7 +169,7 @@ public partial class LadaWindow
             catch (Exception ex)
             {
                 Logger.LogError(nameof(StartDiskTimer), ex);
-                freeSpaceLabel.Text = Strings.DiskUnavailable;
+                freeSpaceLabel.Text = Strings.WidgetUnavailable;
                 barFill.Width = 0;
             }
         }

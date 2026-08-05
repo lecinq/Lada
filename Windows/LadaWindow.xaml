@@ -70,7 +70,7 @@
                                                         </LinearGradientBrush>
                                                     </Rectangle.Fill>
                                                 </Rectangle>
-                                                <Slider x:Name="HueSlider" Minimum="0" Maximum="360" Background="Transparent" VerticalAlignment="Center"/>
+                                                <Slider x:Name="HueSlider" Minimum="0" Maximum="360" Background="Transparent" VerticalAlignment="Center" Style="{StaticResource ColorPickerSliderStyle}"/>
                                             </Grid>
                                         </StackPanel>
 
@@ -84,7 +84,7 @@
                                                         </LinearGradientBrush>
                                                     </Rectangle.Fill>
                                                 </Rectangle>
-                                                <Slider x:Name="SaturationSlider" Minimum="0" Maximum="100" Background="Transparent" VerticalAlignment="Center"/>
+                                                <Slider x:Name="SaturationSlider" Minimum="0" Maximum="100" Background="Transparent" VerticalAlignment="Center" Style="{StaticResource ColorPickerSliderStyle}"/>
                                             </Grid>
                                         </StackPanel>
 
@@ -99,11 +99,12 @@
                                                         </LinearGradientBrush>
                                                     </Rectangle.Fill>
                                                 </Rectangle>
-                                                <Slider x:Name="LightnessSlider" Minimum="0" Maximum="100" Background="Transparent" VerticalAlignment="Center"/>
+                                                <Slider x:Name="LightnessSlider" Minimum="0" Maximum="100" Background="Transparent" VerticalAlignment="Center" Style="{StaticResource ColorPickerSliderStyle}"/>
                                             </Grid>
                                         </StackPanel>
 
                                         <TextBox x:Name="ColorHexBox" MaxLength="7"
+                                                 Style="{StaticResource ColorHexBoxStyle}"
                                                  Background="Transparent"
                                                  Foreground="{DynamicResource TitleTextBrush}"
                                                  FontFamily="{DynamicResource LadaFontFamily}"

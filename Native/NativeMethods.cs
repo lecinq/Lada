@@ -128,6 +128,18 @@ internal static class NativeMethods
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, int nSize, out int lpNumberOfBytesRead);
+
+    internal const byte BATTERY_FLAG_NO_SYSTEM_BATTERY = 128;
+    internal const byte BATTERY_FLAG_CHARGING = 8;
+    internal const byte BATTERY_PERCENT_UNKNOWN = 255;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool GetSystemPowerStatus(out SYSTEM_POWER_STATUS lpSystemPowerStatus);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX lpBuffer);
 }
 
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
@@ -166,4 +178,29 @@ internal struct LVFINDINFOW
     public IntPtr LParam;
     public POINT Pt;
     public uint VkDirection;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct SYSTEM_POWER_STATUS
+{
+    public byte ACLineStatus;
+    public byte BatteryFlag;
+    public byte BatteryLifePercent;
+    public byte Reserved1;
+    public uint BatteryLifeTime;
+    public uint BatteryFullLifeTime;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct MEMORYSTATUSEX
+{
+    public uint dwLength;
+    public uint dwMemoryLoad;
+    public ulong ullTotalPhys;
+    public ulong ullAvailPhys;
+    public ulong ullTotalPageFile;
+    public ulong ullAvailPageFile;
+    public ulong ullTotalVirtual;
+    public ulong ullAvailVirtual;
+    public ulong ullAvailExtendedVirtual;
 }

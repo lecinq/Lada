@@ -17,6 +17,7 @@
 
     <Thickness x:Key="LadaBorderThickness">1</Thickness>
     <CornerRadius x:Key="LadaCornerRadius">0</CornerRadius>
+    <CornerRadius x:Key="ColorPickerCornerRadius">0</CornerRadius>
     <x:Null x:Key="LadaShadowEffect"/>
     <FontFamily x:Key="LadaFontFamily">Consolas</FontFamily>
 

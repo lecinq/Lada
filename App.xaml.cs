@@ -20,6 +20,7 @@ public partial class App : Application
     private LocalizationManager _localizationManager = null!;
     private HoverFadeManager _hoverFadeManager = null!;
     private MagnetismManager _magnetismManager = null!;
+    private HardwareMonitorService _hardwareMonitorService = null!;
     private DesktopAutoOrganizeWatcher _desktopAutoOrganizeWatcher = null!;
     private readonly List<LadaWindow> _ladaWindows = new();
     private bool _overlayActive;
@@ -51,6 +52,8 @@ public partial class App : Application
         _magnetismManager = new MagnetismManager();
         _magnetismManager.Apply(savedLayout.MagnetismEnabled);
 
+        _hardwareMonitorService = new HardwareMonitorService();
+
         foreach (var ladaLayout in savedLayout.Ladas)
         {
             CreateLadaWindow(ladaLayout);
@@ -72,6 +75,7 @@ public partial class App : Application
         _trayIconManager.MagnetismToggleRequested += ChangeMagnetism;
         _trayIconManager.SetMagnetismEnabled(_magnetismManager.Enabled);
         _trayIconManager.ArrangeRequested += ArrangeAllLadas;
+        _trayIconManager.AboutRequested += () => new AboutWindow().Show();
         _desktopToggleService = new DesktopToggleService(() => _ladaWindows);
         _desktopToggleService.Start();
 
@@ -154,7 +158,7 @@ public partial class App : Application
 
     private void CreateLadaWindow(LadaLayout layout)
     {
-        var window = new LadaWindow(layout, _themeManager, _localizationManager, _hoverFadeManager, _magnetismManager, () => _ladaWindows);
+        var window = new LadaWindow(layout, _themeManager, _localizationManager, _hoverFadeManager, _magnetismManager, _hardwareMonitorService, () => _ladaWindows);
         window.LayoutChanged += (_, _) => PersistLayout();
         window.ItemLaunchFailed += message => _trayIconManager.ShowBalloon("Lada", message);
         window.DrawerOperationFailed += message => _trayIconManager.ShowBalloon("Lada", message);
@@ -261,6 +265,7 @@ public partial class App : Application
         _desktopToggleService.Dispose();
         _hotkeyService.Dispose();
         _desktopAutoOrganizeWatcher.Dispose();
+        _hardwareMonitorService.Dispose();
 
         base.OnExit(e);
     }

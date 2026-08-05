@@ -61,15 +61,14 @@ public partial class LadaWindow
     private Border BuildTabHeader(LadaTab tab, int index)
     {
         var isActive = index == _activeTabIndex;
+        var accent = ItemLabelAccentOverride();
 
         var border = new Border
         {
             Padding = new Thickness(8, 2, 8, 2),
             Margin = new Thickness(0, 0, 4, 0),
             CornerRadius = new CornerRadius(4),
-            Background = isActive ? (Brush)FindResource("IconHoverBackgroundBrush") : Brushes.Transparent,
-            BorderBrush = (Brush)FindResource("AccentBrush"),
-            BorderThickness = isActive ? new Thickness(0, 0, 0, 2) : new Thickness(0),
+            Background = isActive ? WidgetTrackBrush(accent) : Brushes.Transparent,
             Cursor = Cursors.Hand,
             AllowDrop = true
         };
@@ -78,7 +77,7 @@ public partial class LadaWindow
         {
             Text = tab.Title,
             FontSize = 11,
-            Foreground = (Brush)FindResource(isActive ? "TitleTextBrush" : "SecondaryTextBrush"),
+            Foreground = isActive ? accent ?? (Brush)FindResource("TitleTextBrush") : WidgetDimmedAccentBrush(accent),
             VerticalAlignment = VerticalAlignment.Center
         };
 
@@ -226,6 +225,11 @@ public partial class LadaWindow
         DisposeAllDrawerWatchers();
         DisposeAllClockTimers();
         DisposeAllDiskTimers();
+        DisposeAllBatteryTimers();
+        DisposeAllMemoryTimers();
+        DisposeAllCpuUpdates();
+        DisposeAllGpuUpdates();
+        DisposeAllNetworkUpdates();
         DisposeAllTimerWidgetTimers();
         ClearSelection();
         IconGrid.Children.Clear();

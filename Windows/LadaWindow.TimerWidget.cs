@@ -55,19 +55,23 @@ public partial class LadaWindow
             Tag = item
         };
 
+        var accent = ItemLabelAccentOverride();
+
         var label = new TextBlock
         {
             Text = item.DisplayName,
             Style = (Style)FindResource("IconLabelStyle"),
             Margin = new Thickness(0, 0, 0, 4)
         };
+        if (accent is not null)
+            label.Foreground = accent;
 
         var timeLabel = new TextBlock
         {
             FontSize = 18,
             FontWeight = FontWeights.Medium,
             HorizontalAlignment = HorizontalAlignment.Center,
-            Foreground = (Brush)FindResource("TitleTextBrush"),
+            Foreground = accent ?? (Brush)FindResource("TitleTextBrush"),
             Margin = new Thickness(0, 0, 0, 4)
         };
 
@@ -76,14 +80,14 @@ public partial class LadaWindow
             Width = 0,
             Height = 6,
             HorizontalAlignment = HorizontalAlignment.Left,
-            Background = (Brush)FindResource("AccentBrush")
+            Background = accent ?? (Brush)FindResource("AccentBrush")
         };
         var barTrack = new Border
         {
             Width = TimerBarWidth,
             Height = 6,
             CornerRadius = new CornerRadius(3),
-            Background = (Brush)FindResource("IconHoverBackgroundBrush"),
+            Background = WidgetTrackBrush(accent),
             HorizontalAlignment = HorizontalAlignment.Center,
             ClipToBounds = true,
             Child = barFill

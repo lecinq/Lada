@@ -26,6 +26,70 @@
                 <Setter Property="TextAlignment" Value="Center"/>
                 <Setter Property="TextWrapping" Value="Wrap"/>
             </Style>
+
+            <!-- Both read ColorPickerCornerRadius, which is 8 in Midnight and 0
+                 in Modernism/Anderson, since those two themes stay square everywhere
+                 else, so the color picker's slider thumb and hex box follow suit
+                 instead of standing out as the one rounded thing left. -->
+            <Style x:Key="ColorPickerTrackRepeatButtonStyle" TargetType="RepeatButton">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RepeatButton">
+                            <Rectangle Fill="Transparent"/>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="ColorPickerSliderStyle" TargetType="Slider">
+                <!-- No IsMoveToPointEnabled here on purpose: that built-in
+                     mechanism is a class handler that runs before the
+                     instance handlers wired in LadaWindow.ColorPicker.cs,
+                     capturing the mouse on the Thumb itself and marking the
+                     event handled before our own click-anywhere-then-drag
+                     logic ever gets a turn. Our code owns this entirely. -->
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Slider">
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge" Style="{StaticResource ColorPickerTrackRepeatButtonStyle}"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge" Style="{StaticResource ColorPickerTrackRepeatButtonStyle}"/>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Width="16" Height="16">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border Background="{DynamicResource TitleTextBrush}"
+                                                        BorderBrush="{DynamicResource LadaBorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="{DynamicResource ColorPickerCornerRadius}"/>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="ColorHexBoxStyle" TargetType="TextBox">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="{DynamicResource ColorPickerCornerRadius}">
+                                <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

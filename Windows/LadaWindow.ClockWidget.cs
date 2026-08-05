@@ -78,6 +78,12 @@ public partial class LadaWindow
             Foreground = (Brush)FindResource("TitleTextBrush")
         };
 
+        if (ItemLabelAccentOverride() is { } accent)
+        {
+            cityLabel.Foreground = accent;
+            timeLabel.Foreground = accent;
+        }
+
         stack.Children.Add(cityLabel);
         stack.Children.Add(timeLabel);
 

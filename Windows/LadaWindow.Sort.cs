@@ -49,6 +49,10 @@ public partial class LadaWindow
             presetItem.Click += (_, _) => ApplyGridSizePreset(columns, rows);
             sizeSubmenu.Items.Add(presetItem);
         }
+        sizeSubmenu.Items.Add(new Separator());
+        var fitToContentItem = new MenuItem { Header = Strings.FitToContentMenuItem };
+        fitToContentItem.Click += (_, _) => FitWindowToContent();
+        sizeSubmenu.Items.Add(fitToContentItem);
         contextMenu.Items.Add(sizeSubmenu);
 
         InitializeViewModeMenu(contextMenu);
@@ -71,6 +75,32 @@ public partial class LadaWindow
         var newTimerItem = new MenuItem { Header = Strings.TimerWidgetMenuItem };
         newTimerItem.Click += (_, _) => AddTimerWidget();
         newWidgetSubmenu.Items.Add(newTimerItem);
+
+        var newBatteryItem = new MenuItem { Header = Strings.BatteryWidgetMenuItem };
+        newBatteryItem.Click += (_, _) => AddBatteryWidget();
+        newWidgetSubmenu.Items.Add(newBatteryItem);
+
+        var newMemoryItem = new MenuItem { Header = Strings.MemoryWidgetMenuItem };
+        newMemoryItem.Click += (_, _) => AddMemoryWidget();
+        newWidgetSubmenu.Items.Add(newMemoryItem);
+
+        var newCpuItem = new MenuItem { Header = Strings.CpuWidgetMenuItem };
+        newCpuItem.Click += (_, _) => AddCpuWidget();
+        newWidgetSubmenu.Items.Add(newCpuItem);
+
+        var newGpuSubmenu = new MenuItem { Header = Strings.GpuWidgetMenuItem };
+        foreach (var gpuItem in BuildGpuMenuItems(AddGpuWidget))
+        {
+            newGpuSubmenu.Items.Add(gpuItem);
+        }
+        newWidgetSubmenu.Items.Add(newGpuSubmenu);
+
+        var newNetworkSubmenu = new MenuItem { Header = Strings.NetworkWidgetMenuItem };
+        foreach (var adapterItem in BuildNetworkAdapterMenuItems(AddNetworkWidget))
+        {
+            newNetworkSubmenu.Items.Add(adapterItem);
+        }
+        newWidgetSubmenu.Items.Add(newNetworkSubmenu);
 
         contextMenu.Items.Add(newWidgetSubmenu);
 
@@ -198,6 +228,11 @@ public partial class LadaWindow
         DisposeAllDrawerWatchers();
         DisposeAllClockTimers();
         DisposeAllDiskTimers();
+        DisposeAllBatteryTimers();
+        DisposeAllMemoryTimers();
+        DisposeAllCpuUpdates();
+        DisposeAllGpuUpdates();
+        DisposeAllNetworkUpdates();
         DisposeAllTimerWidgetTimers();
 
         for (var i = 0; i < _items.Count; i++)

@@ -15,6 +15,13 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
+  <!-- Only third-party dependency in the project: CPU/GPU load and
+       temperature have no native Win32 equivalent worth hand-rolling
+       (unlike Battery/Memory, which stay on plain P/Invoke below). -->
+  <ItemGroup>
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
+  </ItemGroup>
+
   <!-- Lada.Tests lives inside this project's own directory; without this,
        the default SDK glob also compiles the test project's files (and its
        generated obj/ output) into Lada.csproj itself. -->

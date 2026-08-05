@@ -132,7 +132,7 @@ public partial class LadaWindow
     private Grid BuildListRow(LadaItem item)
     {
         var tab = _tabs[_activeTabIndex];
-        var isWidget = item.IsClockWidget || item.IsDiskWidget || item.IsTimerWidget;
+        var isWidget = item.IsClockWidget || item.IsDiskWidget || item.IsTimerWidget || item.IsBatteryWidget || item.IsMemoryWidget || item.IsCpuWidget || item.IsGpuWidget || item.IsNetworkWidget;
 
         var grid = new Grid { Tag = item, Margin = new Thickness(0, 2, 0, 2), Cursor = Cursors.Hand };
         AddListColumns(grid, tab);
@@ -229,6 +229,16 @@ public partial class LadaWindow
             return Strings.DiskWidgetMenuItem;
         if (item.IsTimerWidget)
             return Strings.TimerWidgetMenuItem;
+        if (item.IsBatteryWidget)
+            return Strings.BatteryWidgetMenuItem;
+        if (item.IsMemoryWidget)
+            return Strings.MemoryWidgetMenuItem;
+        if (item.IsCpuWidget)
+            return Strings.CpuWidgetMenuItem;
+        if (item.IsGpuWidget)
+            return Strings.GpuWidgetMenuItem;
+        if (item.IsNetworkWidget)
+            return Strings.NetworkWidgetMenuItem;
 
         // A drawer (IsDrawer) still has a real folder Path, so it goes
         // through the normal lookup too -- SHGetFileInfo already returns
@@ -238,7 +248,7 @@ public partial class LadaWindow
 
     private string GetListSizeLabel(LadaItem item)
     {
-        if (item.IsClockWidget || item.IsDiskWidget || item.IsTimerWidget || !File.Exists(item.Path))
+        if (item.IsClockWidget || item.IsDiskWidget || item.IsTimerWidget || item.IsBatteryWidget || item.IsMemoryWidget || item.IsCpuWidget || item.IsGpuWidget || item.IsNetworkWidget || !File.Exists(item.Path))
             return ""; // File.Exists is false for directories too, so a
                         // drawer/folder row's size is blank without needing
                         // a try/catch around FileInfo.Length.
@@ -248,7 +258,7 @@ public partial class LadaWindow
 
     private string GetListDateLabel(LadaItem item)
     {
-        if (item.IsClockWidget || item.IsDiskWidget || item.IsTimerWidget)
+        if (item.IsClockWidget || item.IsDiskWidget || item.IsTimerWidget || item.IsBatteryWidget || item.IsMemoryWidget || item.IsCpuWidget || item.IsGpuWidget || item.IsNetworkWidget)
             return "";
         if (!File.Exists(item.Path) && !Directory.Exists(item.Path))
             return "";

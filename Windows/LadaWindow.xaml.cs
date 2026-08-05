@@ -27,6 +27,7 @@ public partial class LadaWindow : Window
     // partial (Sort/DragDrop/Selection/Drawer) can keep mutating it in place
     // without knowing tabs exist.
     private List<LadaItem> _items;
+    private HardwareMonitorService _hardwareMonitorService = null!;
     private Point _titleBarDragStart;
     private bool _isDraggingTitleBar;
     private Vector _pendingDragDelta;
@@ -35,7 +36,7 @@ public partial class LadaWindow : Window
     public event Action? NewLadaRequested;
     public event Action? DeleteRequested;
 
-    public LadaWindow(LadaLayout layout, ThemeManager themeManager, LocalizationManager localizationManager, HoverFadeManager hoverFadeManager, MagnetismManager magnetismManager, Func<IEnumerable<LadaWindow>> getAllLadaWindows)
+    public LadaWindow(LadaLayout layout, ThemeManager themeManager, LocalizationManager localizationManager, HoverFadeManager hoverFadeManager, MagnetismManager magnetismManager, HardwareMonitorService hardwareMonitorService, Func<IEnumerable<LadaWindow>> getAllLadaWindows)
     {
         InitializeComponent();
 
@@ -45,6 +46,7 @@ public partial class LadaWindow : Window
         _items = _tabs[_activeTabIndex].Items;
 
         _magnetismManager = magnetismManager;
+        _hardwareMonitorService = hardwareMonitorService;
         _getAllLadaWindows = getAllLadaWindows;
 
         Left = layout.X;
@@ -84,7 +86,18 @@ public partial class LadaWindow : Window
         InitializeToDoListDragTarget();
         UpdateTabContentModeVisuals();
         RenderTabStrip();
-        Closed += (_, _) => { DisposeAllDrawerWatchers(); DisposeAllClockTimers(); DisposeAllDiskTimers(); DisposeAllTimerWidgetTimers(); };
+        Closed += (_, _) =>
+        {
+            DisposeAllDrawerWatchers();
+            DisposeAllClockTimers();
+            DisposeAllDiskTimers();
+            DisposeAllTimerWidgetTimers();
+            DisposeAllBatteryTimers();
+            DisposeAllMemoryTimers();
+            DisposeAllCpuUpdates();
+            DisposeAllGpuUpdates();
+            DisposeAllNetworkUpdates();
+        };
     }
 
     public LadaLayout ToLayout()
@@ -329,6 +342,11 @@ public partial class LadaWindow : Window
             menu.Items.Add(menuItem);
         }
 
+        menu.Items.Add(new Separator());
+        var fitToContentItem = new MenuItem { Header = Strings.FitToContentMenuItem };
+        fitToContentItem.Click += (_, _) => FitWindowToContent();
+        menu.Items.Add(fitToContentItem);
+
         AttachOutsideClickAutoClose(menu);
         ResizeThumb.ContextMenu = menu;
     }
@@ -468,13 +486,78 @@ public partial class LadaWindow : Window
         if (_isFolded)
             return;
 
-        UpdateLayout();
-        ActiveItemsPanel.Measure(new Size(ActiveItemsPanel.ActualWidth, double.PositiveInfinity));
-
-        var neededHeight = TitleBarHeight + ActiveItemsPanel.DesiredSize.Height + IconGridOuterMargin + GridSizeSafetyMargin;
+        var neededHeight = ComputeNeededContentHeight();
         if (neededHeight > Height)
         {
             Height = neededHeight;
         }
+    }
+
+    // Used by EnsureContentFits (auto grow-only, all content modes) and by
+    // FitWindowToContent outside of icon grid mode. Measured at the CURRENT
+    // width (not an unconstrained one): a WrapPanel's needed height depends
+    // on the width it's already been given -- measuring at infinite width
+    // would collapse everything onto a single unwrapped row instead of
+    // reporting the wrapped height at today's width. Icon grid mode's
+    // "Fit to content" uses ComputeIconGridContentExtent below instead,
+    // which fits width and height together from one rendered snapshot.
+    private double ComputeNeededContentHeight()
+    {
+        UpdateLayout();
+        ActiveItemsPanel.Measure(new Size(ActiveItemsPanel.ActualWidth, double.PositiveInfinity));
+        return TitleBarHeight + ActiveItemsPanel.DesiredSize.Height + IconGridOuterMargin + GridSizeSafetyMargin;
+    }
+
+    // Not a Measure() -- WrapPanel has no independent "desired width" to ask
+    // for the way it does a desired height at a given width, and re-Measuring
+    // it a second time (at a new width, after already resizing once this
+    // same call) turned out to be exactly that kind of two-step: fitting
+    // width first, then asking the panel to re-measure height at the new
+    // width, produced a stale/inflated number in practice. Reading back
+    // where the CURRENTLY rendered children actually ended up -- both their
+    // rightmost and bottommost edges, in one pass, before anything is
+    // resized -- sidesteps a second layout pass entirely. Since every item
+    // already fits within that span at the current width, shrinking to
+    // exactly that span can't force any new wrapping, so the row/column
+    // layout the user is looking at right now is preserved, just with the
+    // trailing empty space trimmed off on both edges.
+    private (double Width, double Height) ComputeIconGridContentExtent()
+    {
+        double maxRight = 0, maxBottom = 0;
+        foreach (UIElement child in IconGrid.Children)
+        {
+            var bounds = child.TransformToAncestor(IconGrid).TransformBounds(new Rect(child.RenderSize));
+            maxRight = Math.Max(maxRight, bounds.Right);
+            maxBottom = Math.Max(maxBottom, bounds.Bottom);
+        }
+        return (maxRight, maxBottom);
+    }
+
+    // Unlike EnsureContentFits (called automatically after every content
+    // change, grow-only so an in-progress drag or a momentarily-short tab
+    // never gets yanked smaller on its own), this is the user-requested
+    // "Fit to content" action: shrinks just as readily as it grows, and
+    // fits width too, not just height -- but only in icon grid mode; list
+    // rows and the to-do/memo surfaces already span the full width by
+    // design, so there's no trailing space to trim there.
+    private void FitWindowToContent()
+    {
+        if (_isFolded)
+            return;
+
+        UpdateLayout();
+
+        if (_tabs[_activeTabIndex].ContentMode == TabContentMode.Icons && _tabs[_activeTabIndex].ViewMode == ItemViewMode.Grid)
+        {
+            var (contentWidth, contentHeight) = ComputeIconGridContentExtent();
+            Width = Math.Max(160, IconGridOuterMargin + contentWidth + GridSizeSafetyMargin);
+            Height = Math.Max(TitleBarHeight + 40, TitleBarHeight + contentHeight + IconGridOuterMargin + GridSizeSafetyMargin);
+        }
+        else
+        {
+            Height = Math.Max(TitleBarHeight + 40, ComputeNeededContentHeight());
+        }
+
+        LayoutChanged?.Invoke(this, EventArgs.Empty);
     }
 }

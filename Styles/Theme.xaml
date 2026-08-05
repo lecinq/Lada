@@ -17,6 +17,7 @@
 
     <Thickness x:Key="LadaBorderThickness">1</Thickness>
     <CornerRadius x:Key="LadaCornerRadius">12</CornerRadius>
+    <CornerRadius x:Key="ColorPickerCornerRadius">8</CornerRadius>
     <DropShadowEffect x:Key="LadaShadowEffect" Color="Black" Opacity="0.4" BlurRadius="24" ShadowDepth="8" Direction="270"/>
     <FontFamily x:Key="LadaFontFamily">Segoe UI</FontFamily>
 
