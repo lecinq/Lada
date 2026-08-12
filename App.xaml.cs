@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using Lada.Models;
@@ -20,7 +21,12 @@ public partial class App : Application
     private LocalizationManager _localizationManager = null!;
     private HoverFadeManager _hoverFadeManager = null!;
     private MagnetismManager _magnetismManager = null!;
+    private PerspectiveTiltManager _perspectiveTiltManager = null!;
+    private HudGlowManager _hudGlowManager = null!;
+    private CustomColorPaletteService _customColorPaletteService = null!;
     private HardwareMonitorService _hardwareMonitorService = null!;
+    private GmailAuthService _gmailAuthService = null!;
+    private GmailPollingService _gmailPollingService = null!;
     private DesktopAutoOrganizeWatcher _desktopAutoOrganizeWatcher = null!;
     private readonly List<LadaWindow> _ladaWindows = new();
     private bool _overlayActive;
@@ -52,7 +58,21 @@ public partial class App : Application
         _magnetismManager = new MagnetismManager();
         _magnetismManager.Apply(savedLayout.MagnetismEnabled);
 
+        _perspectiveTiltManager = new PerspectiveTiltManager();
+        _perspectiveTiltManager.Apply(savedLayout.PerspectiveTiltEnabled);
+
+        _hudGlowManager = new HudGlowManager();
+        _hudGlowManager.Apply(savedLayout.HudGlowEnabled);
+
+        _customColorPaletteService = new CustomColorPaletteService();
+        _customColorPaletteService.Apply(savedLayout.CustomColors);
+        _customColorPaletteService.Changed += PersistLayout;
+
         _hardwareMonitorService = new HardwareMonitorService();
+
+        _gmailAuthService = new GmailAuthService(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Lada"));
+        _gmailPollingService = new GmailPollingService();
+        _gmailPollingService.Configure(_gmailAuthService);
 
         foreach (var ladaLayout in savedLayout.Ladas)
         {
@@ -74,6 +94,10 @@ public partial class App : Application
         _trayIconManager.SetHoverFadeEnabled(_hoverFadeManager.Enabled);
         _trayIconManager.MagnetismToggleRequested += ChangeMagnetism;
         _trayIconManager.SetMagnetismEnabled(_magnetismManager.Enabled);
+        _trayIconManager.PerspectiveTiltToggleRequested += ChangePerspectiveTilt;
+        _trayIconManager.SetPerspectiveTiltEnabled(_perspectiveTiltManager.Enabled);
+        _trayIconManager.HudGlowToggleRequested += ChangeHudGlow;
+        _trayIconManager.SetHudGlowEnabled(_hudGlowManager.Enabled);
         _trayIconManager.ArrangeRequested += ArrangeAllLadas;
         _trayIconManager.AboutRequested += () => new AboutWindow().Show();
         _desktopToggleService = new DesktopToggleService(() => _ladaWindows);
@@ -133,6 +157,18 @@ public partial class App : Application
         PersistLayout();
     }
 
+    private void ChangePerspectiveTilt(bool enabled)
+    {
+        _perspectiveTiltManager.Apply(enabled);
+        PersistLayout();
+    }
+
+    private void ChangeHudGlow(bool enabled)
+    {
+        _hudGlowManager.Apply(enabled);
+        PersistLayout();
+    }
+
     // Arranges every currently visible lada into a flow layout on the
     // primary screen -- a one-shot action, not a persistent mode. A
     // currently hidden lada (desktop double-click toggle) is skipped
@@ -158,7 +194,7 @@ public partial class App : Application
 
     private void CreateLadaWindow(LadaLayout layout)
     {
-        var window = new LadaWindow(layout, _themeManager, _localizationManager, _hoverFadeManager, _magnetismManager, _hardwareMonitorService, () => _ladaWindows);
+        var window = new LadaWindow(layout, _themeManager, _localizationManager, _hoverFadeManager, _magnetismManager, _perspectiveTiltManager, _hudGlowManager, _customColorPaletteService, _hardwareMonitorService, _gmailAuthService, _gmailPollingService, () => _ladaWindows);
         window.LayoutChanged += (_, _) => PersistLayout();
         window.ItemLaunchFailed += message => _trayIconManager.ShowBalloon("Lada", message);
         window.DrawerOperationFailed += message => _trayIconManager.ShowBalloon("Lada", message);
@@ -242,6 +278,9 @@ public partial class App : Application
             Language = _localizationManager.Current,
             HoverFadeEnabled = _hoverFadeManager.Enabled,
             MagnetismEnabled = _magnetismManager.Enabled,
+            PerspectiveTiltEnabled = _perspectiveTiltManager.Enabled,
+            HudGlowEnabled = _hudGlowManager.Enabled,
+            CustomColors = _customColorPaletteService.Colors.ToList(),
             Ladas = _ladaWindows.Select(w => w.ToLayout()).ToList()
         };
         _layoutManager.RequestSave(collection);
@@ -255,6 +294,9 @@ public partial class App : Application
             Language = _localizationManager.Current,
             HoverFadeEnabled = _hoverFadeManager.Enabled,
             MagnetismEnabled = _magnetismManager.Enabled,
+            PerspectiveTiltEnabled = _perspectiveTiltManager.Enabled,
+            HudGlowEnabled = _hudGlowManager.Enabled,
+            CustomColors = _customColorPaletteService.Colors.ToList(),
             Ladas = _ladaWindows.Select(w => w.ToLayout()).ToList()
         };
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
@@ -266,6 +308,7 @@ public partial class App : Application
         _hotkeyService.Dispose();
         _desktopAutoOrganizeWatcher.Dispose();
         _hardwareMonitorService.Dispose();
+        _gmailPollingService.Dispose();
 
         base.OnExit(e);
     }

@@ -28,6 +28,8 @@ public partial class LadaWindow : Window
     // without knowing tabs exist.
     private List<LadaItem> _items;
     private HardwareMonitorService _hardwareMonitorService = null!;
+    private GmailAuthService? _gmailAuthService;
+    private GmailPollingService? _gmailPollingService;
     private Point _titleBarDragStart;
     private bool _isDraggingTitleBar;
     private Vector _pendingDragDelta;
@@ -36,7 +38,7 @@ public partial class LadaWindow : Window
     public event Action? NewLadaRequested;
     public event Action? DeleteRequested;
 
-    public LadaWindow(LadaLayout layout, ThemeManager themeManager, LocalizationManager localizationManager, HoverFadeManager hoverFadeManager, MagnetismManager magnetismManager, HardwareMonitorService hardwareMonitorService, Func<IEnumerable<LadaWindow>> getAllLadaWindows)
+    public LadaWindow(LadaLayout layout, ThemeManager themeManager, LocalizationManager localizationManager, HoverFadeManager hoverFadeManager, MagnetismManager magnetismManager, PerspectiveTiltManager perspectiveTiltManager, HudGlowManager hudGlowManager, CustomColorPaletteService customColorPaletteService, HardwareMonitorService hardwareMonitorService, GmailAuthService gmailAuthService, GmailPollingService gmailPollingService, Func<IEnumerable<LadaWindow>> getAllLadaWindows)
     {
         InitializeComponent();
 
@@ -46,13 +48,19 @@ public partial class LadaWindow : Window
         _items = _tabs[_activeTabIndex].Items;
 
         _magnetismManager = magnetismManager;
+        _customColorPaletteService = customColorPaletteService;
         _hardwareMonitorService = hardwareMonitorService;
+        _gmailAuthService = gmailAuthService;
+        _gmailPollingService = gmailPollingService;
         _getAllLadaWindows = getAllLadaWindows;
 
-        Left = layout.X;
-        Top = layout.Y;
-        Width = layout.Width;
-        Height = layout.Height;
+        // layout.X/Y/Width/Height are the LOGICAL (visible card) values;
+        // this Window's own Left/Top/Width/Height DPs represent the real,
+        // HudGlowMargin-padded HWND rect (LadaWindow.HudGlow.cs) instead.
+        Left = layout.X - HudGlowMargin;
+        Top = layout.Y - HudGlowMargin;
+        Width = layout.Width + 2 * HudGlowMargin;
+        Height = layout.Height + 2 * HudGlowMargin;
         TitleTextBlock.Text = layout.Title;
 
         _iconId = layout.IconId;
@@ -64,8 +72,12 @@ public partial class LadaWindow : Window
         _isFolded = layout.IsFolded;
         if (_isFolded)
         {
-            _expandedHeight = layout.Height;
-            Height = TitleBarHeight;
+            // _expandedHeight always holds the padded (Height-DP) value,
+            // matching ToggleFold's own bookkeeping (LadaWindow.Fold.cs) --
+            // layout.Height is logical, so it needs the same +2*margin
+            // conversion as everywhere else layout.Height is loaded.
+            _expandedHeight = layout.Height + 2 * HudGlowMargin;
+            Height = TitleBarHeight + 2 * HudGlowMargin;
         }
 
         LocationChanged += (_, _) => LayoutChanged?.Invoke(this, EventArgs.Empty);
@@ -73,6 +85,8 @@ public partial class LadaWindow : Window
 
         InitializeNativeWindowBehavior();
         InitializeHoverFade(hoverFadeManager);
+        InitializePerspectiveTilt(perspectiveTiltManager);
+        InitializeHudGlow(hudGlowManager);
 
         RenderAllItems();
 
@@ -92,11 +106,17 @@ public partial class LadaWindow : Window
             DisposeAllClockTimers();
             DisposeAllDiskTimers();
             DisposeAllTimerWidgetTimers();
+            DisposeAllTimerAlerts();
             DisposeAllBatteryTimers();
             DisposeAllMemoryTimers();
             DisposeAllCpuUpdates();
             DisposeAllGpuUpdates();
             DisposeAllNetworkUpdates();
+
+            if (_tabs.Any(t => t.ContentMode == TabContentMode.Mail))
+            {
+                _gmailPollingService?.ReleaseSubscriber();
+            }
         };
     }
 
@@ -108,10 +128,10 @@ public partial class LadaWindow : Window
         {
             Id = _id,
             Title = TitleTextBlock.Text,
-            X = Left,
-            Y = Top,
-            Width = Width,
-            Height = _isFolded ? _expandedHeight : Height,
+            X = Left + HudGlowMargin,
+            Y = Top + HudGlowMargin,
+            Width = Width - 2 * HudGlowMargin,
+            Height = (_isFolded ? _expandedHeight : Height) - 2 * HudGlowMargin,
             IsFolded = _isFolded,
             IconId = _iconId,
             IconColor = _iconColor,
@@ -320,8 +340,31 @@ public partial class LadaWindow : Window
 
     private void ResizeThumb_DragDelta(object sender, DragDeltaEventArgs e)
     {
-        var newWidth = Math.Max(160, Width + e.HorizontalChange);
-        var newHeight = Math.Max(TitleBarHeight + 40, Height + e.VerticalChange);
+        // Width/Height are the padded (Height-DP) values throughout, and
+        // e.HorizontalChange/VerticalChange are raw pixel deltas -- both
+        // sides of "+" already agree on that, so the delta math itself
+        // needs no adjustment. Only the floor constants do, since 160 and
+        // TitleBarHeight + 40 were meant as logical minimums.
+        //
+        // Neither dimension can shrink below what the CURRENT content
+        // needs (same measurements EnsureContentFits/FitWindowToContent
+        // already use) -- otherwise manually dragging the chevron could
+        // shrink a lada with, say, a timer widget in it down past the
+        // widget's own size, clipping it off mid-way rather than stopping
+        // there the way it should (folding via double-click on the title
+        // bar is the only way to go smaller than the content, by design).
+        // ComputeNeededContentHeight() calls UpdateLayout() itself, which
+        // ComputeIconGridContentExtent() then relies on having already run.
+        var contentHeightFloor = ComputeNeededContentHeight() + 2 * HudGlowMargin;
+        var widthFloor = 160 + 2 * HudGlowMargin;
+        if (_tabs[_activeTabIndex].ContentMode == TabContentMode.Icons && _tabs[_activeTabIndex].ViewMode == ItemViewMode.Grid)
+        {
+            var (contentWidth, _) = ComputeIconGridContentExtent();
+            widthFloor = Math.Max(widthFloor, IconGridOuterMargin + contentWidth + GridSizeSafetyMargin + 2 * HudGlowMargin);
+        }
+
+        var newWidth = Math.Max(widthFloor, Width + e.HorizontalChange);
+        var newHeight = Math.Max(Math.Max(TitleBarHeight + 40 + 2 * HudGlowMargin, contentHeightFloor), Height + e.VerticalChange);
         Width = newWidth;
         Height = newHeight;
     }
@@ -420,15 +463,10 @@ public partial class LadaWindow : Window
 
     private void ConfirmAndRequestDelete()
     {
-        var result = MessageBox.Show(
-            this,
-            Strings.DeleteLadaConfirmationBody,
-            Strings.DeleteLadaMenuItem,
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning,
-            MessageBoxResult.No);
+        var confirmation = new ConfirmationWindow(Strings.DeleteLadaMenuItem, Strings.DeleteLadaConfirmationBody) { Owner = this };
+        confirmation.ShowDialog();
 
-        if (result == MessageBoxResult.Yes)
+        if (confirmation.Confirmed)
         {
             DeleteRequested?.Invoke();
         }
@@ -446,10 +484,20 @@ public partial class LadaWindow : Window
     // active theme, but that alone doesn't raise SizeChanged (the window's
     // actual size isn't changing) — so this also gets called from the
     // theme-change handler (LadaWindow.Theme.cs) to keep the clip in sync.
-    private void UpdateMainBorderClip()
+    private void UpdateMainBorderClip() => UpdateMainBorderClip(MainBorder.ActualWidth, MainBorder.ActualHeight);
+
+    // Takes explicit dimensions (rather than always reading
+    // MainBorder.ActualWidth/Height) so UpdateTiltGeometry
+    // (LadaWindow.PerspectiveTilt.cs) can apply the clip synchronously,
+    // using the size it just assigned, instead of waiting for
+    // MainBorder's own SizeChanged/layout pass to catch up -- during a
+    // fast, continuous chevron drag that pass can lag a frame or more
+    // behind, which otherwise left content (e.g. a timer widget) rendering
+    // past MainBorder's shrinking edge, uncropped, until the drag ended.
+    private void UpdateMainBorderClip(double width, double height)
     {
         var radius = MainBorder.CornerRadius.TopLeft;
-        MainBorder.Clip = new RectangleGeometry(new Rect(0, 0, MainBorder.ActualWidth, MainBorder.ActualHeight), radius, radius);
+        MainBorder.Clip = new RectangleGeometry(new Rect(0, 0, width, height), radius, radius);
     }
 
     // A handful of extra pixels so the computed size isn't an exact edge-to-edge
@@ -461,8 +509,8 @@ public partial class LadaWindow : Window
 
     private void ApplyGridSizePreset(int columns, int rows)
     {
-        Width = Math.Max(160, IconGridOuterMargin + columns * IconCellWidth + GridSizeSafetyMargin);
-        Height = Math.Max(TitleBarHeight + 40, TitleBarHeight + IconGridOuterMargin + rows * IconCellHeight + GridSizeSafetyMargin);
+        Width = Math.Max(160, IconGridOuterMargin + columns * IconCellWidth + GridSizeSafetyMargin) + 2 * HudGlowMargin;
+        Height = Math.Max(TitleBarHeight + 40, TitleBarHeight + IconGridOuterMargin + rows * IconCellHeight + GridSizeSafetyMargin) + 2 * HudGlowMargin;
     }
 
     // IconGrid.ActualHeight isn't reliable here: when content doesn't fill
@@ -486,7 +534,7 @@ public partial class LadaWindow : Window
         if (_isFolded)
             return;
 
-        var neededHeight = ComputeNeededContentHeight();
+        var neededHeight = ComputeNeededContentHeight() + 2 * HudGlowMargin;
         if (neededHeight > Height)
         {
             Height = neededHeight;
@@ -550,12 +598,12 @@ public partial class LadaWindow : Window
         if (_tabs[_activeTabIndex].ContentMode == TabContentMode.Icons && _tabs[_activeTabIndex].ViewMode == ItemViewMode.Grid)
         {
             var (contentWidth, contentHeight) = ComputeIconGridContentExtent();
-            Width = Math.Max(160, IconGridOuterMargin + contentWidth + GridSizeSafetyMargin);
-            Height = Math.Max(TitleBarHeight + 40, TitleBarHeight + contentHeight + IconGridOuterMargin + GridSizeSafetyMargin);
+            Width = Math.Max(160, IconGridOuterMargin + contentWidth + GridSizeSafetyMargin) + 2 * HudGlowMargin;
+            Height = Math.Max(TitleBarHeight + 40, TitleBarHeight + contentHeight + IconGridOuterMargin + GridSizeSafetyMargin) + 2 * HudGlowMargin;
         }
         else
         {
-            Height = Math.Max(TitleBarHeight + 40, ComputeNeededContentHeight());
+            Height = Math.Max(TitleBarHeight + 40, ComputeNeededContentHeight()) + 2 * HudGlowMargin;
         }
 
         LayoutChanged?.Invoke(this, EventArgs.Empty);

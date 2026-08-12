@@ -156,6 +156,16 @@ public static class Strings
     public static string FileSizeMegabytes => Pick("Mo", "MB");
     public static string FileSizeGigabytes => Pick("Go", "GB");
 
+    // Mail widget
+    public static string MailConnectButton => Pick("Se connecter à Gmail", "Connect to Gmail");
+    public static string MailLoadingIndicator => Pick("Chargement…", "Loading…");
+    public static string MailReauthRequired => Pick("Reconnexion nécessaire", "Reconnection needed");
+    public static string MailReauthButton => Pick("Se reconnecter", "Reconnect");
+    public static string MailLastUpdateFailed => Pick("Dernière mise à jour : échec", "Last update: failed");
+    public static string MailNoClientSecret => Pick(
+        "Aucun fichier google_client_secret.json trouvé — voir la documentation.",
+        "No google_client_secret.json file found — see the docs.");
+
     // Global hotkeys
     public static string OverlayHotkeyDescription => Pick("Ctrl+Alt+O (Overlay)", "Ctrl+Alt+O (Overlay)");
     public static string ToggleAllHotkeyDescription => Pick("Ctrl+Alt+D (Afficher/Masquer)", "Ctrl+Alt+D (Show/Hide)");
