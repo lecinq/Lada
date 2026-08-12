@@ -37,7 +37,14 @@ public sealed class GmailAuthService
         if (!GoogleClientSecretFile.TryLoad(_clientSecretPath, out _))
             return false;
 
-        var token = await _dataStore.GetAsync<TokenResponse>($"Google.Apis.Auth.OAuth2.Responses.TokenResponse-{UserId}");
+        // Must match the key AuthorizationCodeFlow.StoreTokenAsync itself
+        // uses internally (`DataStore.StoreAsync<TokenResponse>(userId, token)`,
+        // verified against the SDK's own source) -- it's just the plain
+        // userId, not a type-qualified string. Guessing at a composite key
+        // here previously made this always return false even right after a
+        // successful sign-in, since it was never the key the token was
+        // actually stored under.
+        var token = await _dataStore.GetAsync<TokenResponse>(UserId);
         return token is not null;
     }
 
