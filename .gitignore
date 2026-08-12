@@ -3,7 +3,13 @@ obj/
 *.user
 .vs/
 publish-test/
+publish-behance/
 
 # Internal dev context, not for the public repo.
 DEV_NOTES.md
 docs/
+
+# Gmail widget: local-machine OAuth client credentials, never committed
+# (also only ever lives in %AppData%\Lada, never inside the repo -- this
+# is a safety net in case that ever changes).
+google_client_secret.json
