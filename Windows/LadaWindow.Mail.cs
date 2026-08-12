@@ -1,10 +1,12 @@
 using System;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using Lada.Models;
 using Lada.Resources;
+using Lada.Services;
 
 namespace Lada.Windows;
 
@@ -86,12 +88,7 @@ public partial class LadaWindow
     private Button BuildConnectButton()
     {
         var button = new Button { Content = Strings.MailConnectButton, Padding = new Thickness(8, 4, 8, 4) };
-        button.Click += async (_, _) =>
-        {
-            await _gmailAuthService!.SignInAsync(System.Threading.CancellationToken.None);
-            _mailReauthNeeded = false;
-            RenderMailContent();
-        };
+        button.Click += async (_, _) => await SignInAndRefreshAsync();
         return button;
     }
 
@@ -107,15 +104,30 @@ public partial class LadaWindow
         });
 
         var button = new Button { Content = Strings.MailReauthButton, Padding = new Thickness(6, 2, 6, 2) };
-        button.Click += async (_, _) =>
-        {
-            await _gmailAuthService!.SignInAsync(System.Threading.CancellationToken.None);
-            _mailReauthNeeded = false;
-            RenderMailContent();
-        };
+        button.Click += async (_, _) => await SignInAndRefreshAsync();
         stack.Children.Add(button);
 
         return new Border { Child = stack };
+    }
+
+    // Shared by the connect button and the reauth banner's button. A prior
+    // version of this had no try/catch at all -- an exception from
+    // SignInAsync (or from GoogleWebAuthorizationBroker deep inside it)
+    // would have gone completely unobserved (no crash, no log, no visible
+    // change), which is exactly what made an earlier bug here silent.
+    private async Task SignInAndRefreshAsync()
+    {
+        try
+        {
+            await _gmailAuthService!.SignInAsync(System.Threading.CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(nameof(SignInAndRefreshAsync), ex);
+        }
+
+        _mailReauthNeeded = false;
+        RenderMailContent();
     }
 
     private Border BuildMailRow(MailSummary mail)
