@@ -15,10 +15,20 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
-  <!-- Only third-party dependency in the project: CPU/GPU load and
-       temperature have no native Win32 equivalent worth hand-rolling
-       (unlike Battery/Memory, which stay on plain P/Invoke below). -->
   <ItemGroup>
+    <!-- Gmail widget: hand-rolling OAuth 2.0 + the Gmail REST API was
+         evaluated and rejected (see
+         docs/superpowers/specs/2026-08-12-mail-widget-design.md); the
+         official SDK's GoogleWebAuthorizationBroker already implements the
+         loopback+PKCE flow this would otherwise duplicate. Token storage
+         still goes through this app's own DPAPI-backed IDataStore, not the
+         SDK's plaintext default. -->
+    <PackageReference Include="Google.Apis.Auth" Version="1.75.0" />
+    <PackageReference Include="Google.Apis.Gmail.v1" Version="1.75.0.4225" />
+
+    <!-- CPU/GPU load and temperature have no native Win32 equivalent worth
+         hand-rolling (unlike Battery/Memory, which stay on plain P/Invoke
+         below). -->
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
   </ItemGroup>
 
