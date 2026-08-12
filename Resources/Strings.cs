@@ -19,6 +19,8 @@ public static class Strings
     public static string LanguageMenu => Pick("Langue", "Language");
     public static string HoverFadeMenuItem => Pick("Opacité au survol", "Opacity on hover");
     public static string MagnetismMenuItem => Pick("Magnétisme", "Magnetism");
+    public static string PerspectiveTiltMenuItem => Pick("Perspective 3D", "3D perspective");
+    public static string HudGlowMenuItem => Pick("Lueur HUD", "HUD glow");
     public static string ArrangeLadasMenuItem => Pick("Ranger les ladas", "Arrange ladas");
     public static string AboutMenuItem => Pick("À propos", "About");
     public static string Quit => Pick("Quitter", "Quit");
@@ -58,6 +60,10 @@ public static class Strings
         "Supprimer définitivement ce lada ? Les fichiers qu'il contient resteront intacts sur le disque.",
         "Permanently delete this lada? The files inside it will stay untouched on disk.");
 
+    // Themed confirmation dialog (ConfirmationWindow)
+    public static string ConfirmButton => Pick("Confirmer", "Confirm");
+    public static string CancelButton => Pick("Annuler", "Cancel");
+
     // Tabs
     public static string RenameTab => Pick("Renommer", "Rename");
     public static string DeleteTabMenuItem => Pick("Supprimer ce tab", "Delete this tab");
@@ -72,6 +78,7 @@ public static class Strings
     public static string ConvertTabToToDoList => Pick("Convertir en liste de tâches", "Convert to to-do list");
     public static string ConvertTabToMemo => Pick("Convertir en mémo", "Convert to memo");
     public static string ConvertTabToIcons => Pick("Revenir aux icônes", "Back to icons");
+    public static string ConvertTabToMail => Pick("Convertir en mail", "Convert to mail");
     public static string ConvertTabBlockedTitle => Pick("Conversion impossible", "Can't convert");
 
     public static string ConvertTabBlockedBody => Pick(
@@ -132,6 +139,7 @@ public static class Strings
     // Icon picker
     public static string ChooseIconTooltip => Pick("Choisir une icône", "Choose an icon");
     public static string CustomColorHexTooltip => Pick("Code hex (#RRGGBB)", "Hex code (#RRGGBB)");
+    public static string SaveColorTooltip => Pick("Enregistrer cette couleur", "Save this color");
 
     // List view
     public static string ViewModeSubmenu => Pick("Affichage", "View");

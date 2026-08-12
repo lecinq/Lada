@@ -183,6 +183,12 @@ public partial class LadaWindow
             toMemoItem.Click += (_, _) => TryConvertTabContentMode(index, TabContentMode.Memo);
             menu.Items.Add(toMemoItem);
         }
+        if (tab.ContentMode != TabContentMode.Mail)
+        {
+            var toMailItem = new MenuItem { Header = Strings.ConvertTabToMail };
+            toMailItem.Click += (_, _) => TryConvertTabContentMode(index, TabContentMode.Mail);
+            menu.Items.Add(toMailItem);
+        }
         if (tab.ContentMode != TabContentMode.Icons)
         {
             var toIconsItem = new MenuItem { Header = Strings.ConvertTabToIcons };
@@ -264,6 +270,7 @@ public partial class LadaWindow
         ItemListPanel.Visibility = isListView ? Visibility.Visible : Visibility.Collapsed;
         ToDoListPanel.Visibility = mode == TabContentMode.ToDoList ? Visibility.Visible : Visibility.Collapsed;
         MemoTextBox.Visibility = mode == TabContentMode.Memo ? Visibility.Visible : Visibility.Collapsed;
+        MailPanel.Visibility = mode == TabContentMode.Mail ? Visibility.Visible : Visibility.Collapsed;
 
         if (isListView)
         {
@@ -276,6 +283,10 @@ public partial class LadaWindow
         else if (mode == TabContentMode.Memo)
         {
             RenderMemo();
+        }
+        else if (mode == TabContentMode.Mail)
+        {
+            RenderMail();
         }
     }
 

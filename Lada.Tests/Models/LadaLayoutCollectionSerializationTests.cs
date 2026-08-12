@@ -445,6 +445,31 @@ public class LadaLayoutCollectionSerializationTests
     }
 
     [Fact]
+    public void RoundTrip_PreservesMailContentMode()
+    {
+        var original = new LadaLayoutCollection
+        {
+            Ladas =
+            {
+                new LadaLayout
+                {
+                    Tabs =
+                    {
+                        new LadaTab { Title = "Mail", ContentMode = TabContentMode.Mail }
+                    }
+                }
+            }
+        };
+
+        var json = JsonSerializer.Serialize(original, LadaJson.Options);
+        var restored = JsonSerializer.Deserialize<LadaLayoutCollection>(json, LadaJson.Options);
+
+        Assert.Contains("\"mail\"", json);
+        var tab = Assert.Single(Assert.Single(restored!.Ladas).Tabs);
+        Assert.Equal(TabContentMode.Mail, tab.ContentMode);
+    }
+
+    [Fact]
     public void RoundTrip_PreservesClockWidgetFields()
     {
         var original = new LadaLayoutCollection

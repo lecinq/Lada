@@ -4,5 +4,6 @@ public enum TabContentMode
 {
     Icons,
     ToDoList,
-    Memo
+    Memo,
+    Mail
 }
