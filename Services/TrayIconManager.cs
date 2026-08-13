@@ -81,7 +81,7 @@ public sealed class TrayIconManager : IDisposable
         _newWidgetItem = new ToolStripMenuItem();
         foreach (WidgetComponentType type in Enum.GetValues<WidgetComponentType>())
         {
-            var widgetTypeItem = new ToolStripMenuItem(WidgetComponentLabel(type), null, (_, _) => NewWidgetRequested?.Invoke(type)) { Tag = type };
+            var widgetTypeItem = new ToolStripMenuItem(Strings.WidgetComponentLabel(type), null, (_, _) => NewWidgetRequested?.Invoke(type)) { Tag = type };
             _newWidgetItem.DropDownItems.Add(widgetTypeItem);
         }
 
@@ -197,7 +197,7 @@ public sealed class TrayIconManager : IDisposable
         _newWidgetItem.Text = Strings.NewWidgetTrayMenuItem;
         foreach (ToolStripMenuItem item in _newWidgetItem.DropDownItems)
         {
-            item.Text = WidgetComponentLabel((WidgetComponentType)item.Tag!);
+            item.Text = Strings.WidgetComponentLabel((WidgetComponentType)item.Tag!);
         }
         _showAllItem.Text = Strings.ShowAllLadas;
         _arrangeItem.Text = Strings.ArrangeLadasMenuItem;
@@ -211,19 +211,6 @@ public sealed class TrayIconManager : IDisposable
         _aboutItem.Text = Strings.AboutMenuItem;
         _quitItem.Text = Strings.Quit;
     }
-
-    private static string WidgetComponentLabel(WidgetComponentType type) => type switch
-    {
-        WidgetComponentType.Clock => Strings.ClockWidgetMenuItem,
-        WidgetComponentType.Disk => Strings.DiskWidgetMenuItem,
-        WidgetComponentType.Timer => Strings.TimerWidgetMenuItem,
-        WidgetComponentType.Battery => Strings.BatteryWidgetMenuItem,
-        WidgetComponentType.Memory => Strings.MemoryWidgetMenuItem,
-        WidgetComponentType.Cpu => Strings.CpuWidgetMenuItem,
-        WidgetComponentType.Gpu => Strings.GpuWidgetMenuItem,
-        WidgetComponentType.Network => Strings.NetworkWidgetMenuItem,
-        _ => throw new ArgumentOutOfRangeException(nameof(type))
-    };
 
     private static Icon BuildTrayIcon()
     {

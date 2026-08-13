@@ -298,6 +298,7 @@ public partial class App : Application
         window.DrawerOperationFailed += message => _trayIconManager.ShowBalloon("Lada", message);
         window.TimerFinished += message => _trayIconManager.ShowBalloon("Lada", message);
         window.NewLadaRequested += () => CreateNewLada(window);
+        window.NewWidgetRequested += CreateNewWidget;
         window.DeleteRequested += () => DeleteLadaWindow(window);
         window.AutoOrganizeCategoriesChanged += () => _desktopAutoOrganizeWatcher.Sweep();
         _ladaWindows.Add(window);

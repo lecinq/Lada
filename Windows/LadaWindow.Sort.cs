@@ -104,6 +104,19 @@ public partial class LadaWindow
 
         contextMenu.Items.Add(newWidgetSubmenu);
 
+        // Distinct from "Nouveau composant" above: this creates a
+        // standalone widget window (see the standalone-widgets spec),
+        // reachable from any normal lada's own menu, not just the tray's
+        // copy of the same submenu.
+        var newStandaloneWidgetSubmenu = new MenuItem { Header = Strings.NewWidgetTrayMenuItem };
+        foreach (WidgetComponentType type in Enum.GetValues<WidgetComponentType>())
+        {
+            var widgetTypeItem = new MenuItem { Header = Strings.WidgetComponentLabel(type) };
+            widgetTypeItem.Click += (_, _) => NewWidgetRequested?.Invoke(type);
+            newStandaloneWidgetSubmenu.Items.Add(widgetTypeItem);
+        }
+        contextMenu.Items.Add(newStandaloneWidgetSubmenu);
+
         contextMenu.Items.Add(new Separator());
 
         // Only reachable while the active tab is in Icons mode (this is

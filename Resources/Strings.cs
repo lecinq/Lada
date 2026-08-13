@@ -1,3 +1,4 @@
+using System;
 using Lada.Models;
 
 namespace Lada.Resources;
@@ -48,6 +49,19 @@ public static class Strings
     public static string GpuWidgetMenuItem => Pick("Carte graphique", "GPU");
     public static string NetworkWidgetMenuItem => Pick("Réseau", "Network");
     public static string DeleteLadaMenuItem => Pick("Supprimer ce lada", "Delete this lada");
+
+    public static string WidgetComponentLabel(WidgetComponentType type) => type switch
+    {
+        WidgetComponentType.Clock => ClockWidgetMenuItem,
+        WidgetComponentType.Disk => DiskWidgetMenuItem,
+        WidgetComponentType.Timer => TimerWidgetMenuItem,
+        WidgetComponentType.Battery => BatteryWidgetMenuItem,
+        WidgetComponentType.Memory => MemoryWidgetMenuItem,
+        WidgetComponentType.Cpu => CpuWidgetMenuItem,
+        WidgetComponentType.Gpu => GpuWidgetMenuItem,
+        WidgetComponentType.Network => NetworkWidgetMenuItem,
+        _ => throw new ArgumentOutOfRangeException(nameof(type))
+    };
 
     public static string AutoOrganizeSubmenu => Pick("Auto-organisation", "Auto-organize");
     public static string AutoOrganizeCategoryFolder => Pick("Dossiers", "Folders");
