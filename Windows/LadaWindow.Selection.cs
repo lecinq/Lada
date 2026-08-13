@@ -160,6 +160,13 @@ public partial class LadaWindow
 
     private void IconGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        // A widget has exactly one component and nothing else in its grid --
+        // there's nothing to marquee-select, and the empty-space drag would
+        // otherwise be free to start a selection rectangle right on top of
+        // (or around) the one component, which makes no sense here.
+        if (_isWidget)
+            return;
+
         // The item's own PreviewMouseLeftButtonDown (tunneling) fires after
         // this one regardless of e.Handled here — MouseButtonDown-family
         // events don't stop routing on Handled the way ordinary routed
