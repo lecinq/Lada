@@ -16,7 +16,11 @@ public sealed class TrayIconManager : IDisposable
     private readonly ToolStripMenuItem _englishMenuItem;
     private readonly ToolStripMenuItem _hoverFadeMenuItem;
     private readonly ToolStripMenuItem _magnetismMenuItem;
+    private readonly ToolStripMenuItem _perspectiveTiltMenuItem;
+    private readonly ToolStripMenuItem _hudGlowMenuItem;
     private readonly ToolStripMenuItem _newLadaItem;
+    private readonly ToolStripMenuItem _newWidgetItem;
+    private readonly ToolStripMenuItem _widgetChromeMenuItem;
     private readonly ToolStripMenuItem _showAllItem;
     private readonly ToolStripMenuItem _arrangeItem;
     private readonly ToolStripMenuItem _themeMenu;
@@ -32,6 +36,10 @@ public sealed class TrayIconManager : IDisposable
     public event Action<AppLanguage>? LanguageChangeRequested;
     public event Action<bool>? HoverFadeToggleRequested;
     public event Action<bool>? MagnetismToggleRequested;
+    public event Action<bool>? PerspectiveTiltToggleRequested;
+    public event Action<bool>? HudGlowToggleRequested;
+    public event Action<WidgetComponentType>? NewWidgetRequested;
+    public event Action<bool>? WidgetChromeToggleRequested;
     public event Action? AboutRequested;
 
     public TrayIconManager()
@@ -60,7 +68,28 @@ public sealed class TrayIconManager : IDisposable
         _magnetismMenuItem.CheckOnClick = true;
         _magnetismMenuItem.Click += (_, _) => MagnetismToggleRequested?.Invoke(_magnetismMenuItem.Checked);
 
+        _perspectiveTiltMenuItem = new ToolStripMenuItem("", null, (_, _) => { });
+        _perspectiveTiltMenuItem.CheckOnClick = true;
+        _perspectiveTiltMenuItem.Click += (_, _) => PerspectiveTiltToggleRequested?.Invoke(_perspectiveTiltMenuItem.Checked);
+
+        _hudGlowMenuItem = new ToolStripMenuItem("", null, (_, _) => { });
+        _hudGlowMenuItem.CheckOnClick = true;
+        _hudGlowMenuItem.Click += (_, _) => HudGlowToggleRequested?.Invoke(_hudGlowMenuItem.Checked);
+
         _newLadaItem = new ToolStripMenuItem("", null, (_, _) => NewLadaRequested?.Invoke());
+
+        _newWidgetItem = new ToolStripMenuItem();
+        foreach (WidgetComponentType type in Enum.GetValues<WidgetComponentType>())
+        {
+            var widgetTypeItem = new ToolStripMenuItem(WidgetComponentLabel(type), null, (_, _) => NewWidgetRequested?.Invoke(type)) { Tag = type };
+            _newWidgetItem.DropDownItems.Add(widgetTypeItem);
+        }
+
+        _widgetChromeMenuItem = new ToolStripMenuItem("", null, (_, _) => { });
+        _widgetChromeMenuItem.CheckOnClick = true;
+        _widgetChromeMenuItem.Checked = true;
+        _widgetChromeMenuItem.Click += (_, _) => WidgetChromeToggleRequested?.Invoke(_widgetChromeMenuItem.Checked);
+
         _showAllItem = new ToolStripMenuItem("", null, (_, _) => ShowAllRequested?.Invoke());
         _arrangeItem = new ToolStripMenuItem("", null, (_, _) => ArrangeRequested?.Invoke());
         _aboutItem = new ToolStripMenuItem("", null, (_, _) => AboutRequested?.Invoke());
@@ -68,12 +97,16 @@ public sealed class TrayIconManager : IDisposable
 
         var menu = new ContextMenuStrip();
         menu.Items.Add(_newLadaItem);
+        menu.Items.Add(_newWidgetItem);
         menu.Items.Add(_showAllItem);
         menu.Items.Add(_arrangeItem);
         menu.Items.Add(_themeMenu);
         menu.Items.Add(_languageMenu);
         menu.Items.Add(_hoverFadeMenuItem);
         menu.Items.Add(_magnetismMenuItem);
+        menu.Items.Add(_perspectiveTiltMenuItem);
+        menu.Items.Add(_hudGlowMenuItem);
+        menu.Items.Add(_widgetChromeMenuItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_aboutItem);
         menu.Items.Add(new ToolStripSeparator());
@@ -143,18 +176,54 @@ public sealed class TrayIconManager : IDisposable
         _magnetismMenuItem.Checked = enabled;
     }
 
+    public void SetPerspectiveTiltEnabled(bool enabled)
+    {
+        _perspectiveTiltMenuItem.Checked = enabled;
+    }
+
+    public void SetHudGlowEnabled(bool enabled)
+    {
+        _hudGlowMenuItem.Checked = enabled;
+    }
+
+    public void SetWidgetChromeEnabled(bool enabled)
+    {
+        _widgetChromeMenuItem.Checked = enabled;
+    }
+
     public void RefreshTexts()
     {
         _newLadaItem.Text = Strings.NewLada;
+        _newWidgetItem.Text = Strings.NewWidgetTrayMenuItem;
+        foreach (ToolStripMenuItem item in _newWidgetItem.DropDownItems)
+        {
+            item.Text = WidgetComponentLabel((WidgetComponentType)item.Tag!);
+        }
         _showAllItem.Text = Strings.ShowAllLadas;
         _arrangeItem.Text = Strings.ArrangeLadasMenuItem;
         _themeMenu.Text = Strings.ThemeMenu;
         _languageMenu.Text = Strings.LanguageMenu;
         _hoverFadeMenuItem.Text = Strings.HoverFadeMenuItem;
         _magnetismMenuItem.Text = Strings.MagnetismMenuItem;
+        _perspectiveTiltMenuItem.Text = Strings.PerspectiveTiltMenuItem;
+        _hudGlowMenuItem.Text = Strings.HudGlowMenuItem;
+        _widgetChromeMenuItem.Text = Strings.WidgetChromeMenuItem;
         _aboutItem.Text = Strings.AboutMenuItem;
         _quitItem.Text = Strings.Quit;
     }
+
+    private static string WidgetComponentLabel(WidgetComponentType type) => type switch
+    {
+        WidgetComponentType.Clock => Strings.ClockWidgetMenuItem,
+        WidgetComponentType.Disk => Strings.DiskWidgetMenuItem,
+        WidgetComponentType.Timer => Strings.TimerWidgetMenuItem,
+        WidgetComponentType.Battery => Strings.BatteryWidgetMenuItem,
+        WidgetComponentType.Memory => Strings.MemoryWidgetMenuItem,
+        WidgetComponentType.Cpu => Strings.CpuWidgetMenuItem,
+        WidgetComponentType.Gpu => Strings.GpuWidgetMenuItem,
+        WidgetComponentType.Network => Strings.NetworkWidgetMenuItem,
+        _ => throw new ArgumentOutOfRangeException(nameof(type))
+    };
 
     private static Icon BuildTrayIcon()
     {

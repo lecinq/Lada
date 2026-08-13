@@ -60,7 +60,7 @@ public partial class LadaWindow
 
         contextMenu.Items.Add(new Separator());
 
-        var newWidgetSubmenu = new MenuItem { Header = Strings.NewWidgetSubmenu };
+        var newWidgetSubmenu = new MenuItem { Header = Strings.NewComponentSubmenu };
         var newClockItem = new MenuItem { Header = Strings.ClockWidgetMenuItem };
         newClockItem.Click += (_, _) => AddClockWidget();
         newWidgetSubmenu.Items.Add(newClockItem);

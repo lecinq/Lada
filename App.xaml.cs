@@ -102,6 +102,9 @@ public partial class App : Application
         _trayIconManager.SetPerspectiveTiltEnabled(_perspectiveTiltManager.Enabled);
         _trayIconManager.HudGlowToggleRequested += ChangeHudGlow;
         _trayIconManager.SetHudGlowEnabled(_hudGlowManager.Enabled);
+        _trayIconManager.NewWidgetRequested += CreateNewWidget;
+        _trayIconManager.WidgetChromeToggleRequested += ChangeWidgetChromeVisible;
+        _trayIconManager.SetWidgetChromeEnabled(_widgetChromeManager.Enabled);
         _trayIconManager.ArrangeRequested += ArrangeAllLadas;
         _trayIconManager.AboutRequested += () => new AboutWindow().Show();
         _desktopToggleService = new DesktopToggleService(() => _ladaWindows);
@@ -171,6 +174,18 @@ public partial class App : Application
     {
         _hudGlowManager.Apply(enabled);
         PersistLayout();
+    }
+
+    private void ChangeWidgetChromeVisible(bool enabled)
+    {
+        _widgetChromeManager.Apply(enabled);
+        PersistLayout();
+    }
+
+    // Implemented fully in Task 6 of the standalone-widgets plan -- needs
+    // LadaWindow's widget-mode constructor support (Task 4/5) first.
+    private void CreateNewWidget(WidgetComponentType type)
+    {
     }
 
     // Arranges every currently visible lada into a flow layout on the

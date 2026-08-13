@@ -21,6 +21,8 @@ public static class Strings
     public static string MagnetismMenuItem => Pick("Magnétisme", "Magnetism");
     public static string PerspectiveTiltMenuItem => Pick("Perspective 3D", "3D perspective");
     public static string HudGlowMenuItem => Pick("Lueur HUD", "HUD glow");
+    public static string NewWidgetTrayMenuItem => Pick("Nouveau widget", "New widget");
+    public static string WidgetChromeMenuItem => Pick("Titre et icône des widgets", "Widget title and icon");
     public static string ArrangeLadasMenuItem => Pick("Ranger les ladas", "Arrange ladas");
     public static string AboutMenuItem => Pick("À propos", "About");
     public static string Quit => Pick("Quitter", "Quit");
@@ -36,7 +38,7 @@ public static class Strings
     public static string AutoSortToggle => Pick("Tri automatique des nouveaux fichiers", "Auto-sort new files");
     public static string SizePresetSubmenu => Pick("Taille prédéfinie", "Preset size");
     public static string FitToContentMenuItem => Pick("Ajuster au contenu", "Fit to content");
-    public static string NewWidgetSubmenu => Pick("Nouveau widget", "New widget");
+    public static string NewComponentSubmenu => Pick("Nouveau composant", "New component");
     public static string ClockWidgetMenuItem => Pick("Horloge", "Clock");
     public static string DiskWidgetMenuItem => Pick("Espace disque", "Disk space");
     public static string TimerWidgetMenuItem => Pick("Minuteur", "Timer");
