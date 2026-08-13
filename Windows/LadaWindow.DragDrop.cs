@@ -288,6 +288,16 @@ public partial class LadaWindow
 
     private void RemoveItemOrSelection(LadaItem item, Panel stack)
     {
+        // A widget always has exactly one component by definition -- there
+        // is nothing sensible for "remove the component" to leave behind,
+        // so it deletes the whole widget window instead (same confirmation
+        // flow as "Delete this lada" elsewhere, via DeleteRequested).
+        if (_isWidget)
+        {
+            DeleteRequested?.Invoke();
+            return;
+        }
+
         if (_selectedItems.Contains(item) && _selectedItems.Count > 1)
         {
             RemoveSelectedItems();
@@ -345,6 +355,19 @@ public partial class LadaWindow
 
     private void AttachItemDragSource(FrameworkElement dragHandle, Panel stack, LadaItem item)
     {
+        // A widget's single component has nothing to reorder against or
+        // drag out of its own grid -- dragging it should move the whole
+        // widget window instead, reusing the exact same drag handlers the
+        // title bar uses (magnétisme-aware manual tracking or native
+        // DragMove(), frame-throttled either way -- see TitleBar_MouseMove).
+        if (_isWidget)
+        {
+            dragHandle.MouseLeftButtonDown += TitleBar_MouseLeftButtonDown;
+            dragHandle.MouseMove += TitleBar_MouseMove;
+            dragHandle.MouseLeftButtonUp += TitleBar_MouseLeftButtonUp;
+            return;
+        }
+
         dragHandle.PreviewMouseLeftButtonDown += (_, e) =>
         {
             _itemDragStart = e.GetPosition(ActiveItemsPanel);

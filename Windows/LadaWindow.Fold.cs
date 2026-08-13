@@ -11,15 +11,24 @@ public partial class LadaWindow
 
     private void ToggleFold()
     {
+        // A widget is already as small as its component needs -- there's
+        // nothing smaller to collapse to, and with chrome hidden there's no
+        // title bar left to double-click anyway.
+        if (_isWidget)
+            return;
+
+        // _expandedHeight and every Height value here are the padded
+        // (Height-DP) value throughout, consistent with how the rest of
+        // LadaWindow treats Height -- see HudGlowMargin (LadaWindow.HudGlow.cs).
         if (!_isFolded)
         {
             _expandedHeight = Height;
-            AnimateHeight(Height, TitleBarHeight);
+            AnimateHeight(Height, TitleBarHeight + 2 * HudGlowMargin);
             _isFolded = true;
         }
         else
         {
-            AnimateHeight(Height, _expandedHeight > 0 ? _expandedHeight : 240);
+            AnimateHeight(Height, _expandedHeight > 0 ? _expandedHeight : 240 + 2 * HudGlowMargin);
             _isFolded = false;
         }
 
