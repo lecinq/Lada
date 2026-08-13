@@ -99,6 +99,21 @@ public partial class LadaWindow : Window
 
         RenderAllItems();
 
+        // IconGrid is a WrapPanel: by default it stretches to fill its
+        // whole Grid row and always flows children from its own top-left
+        // corner, regardless of the child's own alignment -- fine for a
+        // real multi-item grid, but for a widget's one and only component
+        // it left extra trailing space bottom/right (from the fit-to-content
+        // safety margin) with none to match on top/left, reading as visibly
+        // off-center. Centering IconGrid itself instead makes it shrink-wrap
+        // to its single child and center that within the available card
+        // area, splitting the leftover space evenly on every side.
+        if (_isWidget)
+        {
+            IconGrid.HorizontalAlignment = HorizontalAlignment.Center;
+            IconGrid.VerticalAlignment = VerticalAlignment.Center;
+        }
+
         UpdateIconButtonVisual();
         InitializeIconPickerOutsideClickAutoClose();
         InitializeCustomColorPicker();

@@ -360,11 +360,18 @@ public partial class LadaWindow
         // widget window instead, reusing the exact same drag handlers the
         // title bar uses (magnétisme-aware manual tracking or native
         // DragMove(), frame-throttled either way -- see TitleBar_MouseMove).
+        // Attached to MainBorder (the whole visible card), not dragHandle
+        // (just the component itself) -- a widget is supposed to be
+        // draggable anywhere on it, not only where its content happens to
+        // render, and MouseLeftButtonDown/Move/Up all bubble up from the
+        // component to MainBorder regardless of where inside it was
+        // clicked. Attaching this once per widget (there's only ever one
+        // component) rather than per-render would double-fire otherwise.
         if (_isWidget)
         {
-            dragHandle.MouseLeftButtonDown += TitleBar_MouseLeftButtonDown;
-            dragHandle.MouseMove += TitleBar_MouseMove;
-            dragHandle.MouseLeftButtonUp += TitleBar_MouseLeftButtonUp;
+            MainBorder.MouseLeftButtonDown += TitleBar_MouseLeftButtonDown;
+            MainBorder.MouseMove += TitleBar_MouseMove;
+            MainBorder.MouseLeftButtonUp += TitleBar_MouseLeftButtonUp;
             return;
         }
 
