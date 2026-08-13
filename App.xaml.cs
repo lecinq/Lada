@@ -182,10 +182,89 @@ public partial class App : Application
         PersistLayout();
     }
 
-    // Implemented fully in Task 6 of the standalone-widgets plan -- needs
-    // LadaWindow's widget-mode constructor support (Task 4/5) first.
     private void CreateNewWidget(WidgetComponentType type)
     {
+        var item = BuildWidgetComponentItem(type);
+        if (item is null)
+            return;
+
+        var iconColor = ColorPalette.ForTheme(_themeManager.Current)[0];
+        var layout = new LadaLayout
+        {
+            Title = "Lada",
+            IsWidget = true,
+            IconColor = iconColor,
+            Items = { item }
+        };
+
+        CreateLadaWindow(layout);
+        PersistLayout();
+    }
+
+    // Disk/GPU/Network normally offer a cascading submenu of live options
+    // (BuildDriveMenuItems/BuildGpuMenuItems/BuildNetworkAdapterMenuItems in
+    // LadaWindow.*Widget.cs) built from WPF MenuItems inside a WPF
+    // ContextMenu -- the tray menu is a separate WinForms ContextMenuStrip
+    // (TrayIconManager), so those can't be reused here, and rebuilding the
+    // same cascading list in WinForms for a one-time creation shortcut isn't
+    // worth the duplication. Picking one of these three from the tray
+    // creates the widget immediately with a sensible default instead; the
+    // widget's own existing "Change drive"/"Change GPU"/"Change adapter"
+    // submenu (unchanged, still WPF, already cascading) is one right-click
+    // away if the default wasn't the right one.
+    private LadaItem? BuildWidgetComponentItem(WidgetComponentType type)
+    {
+        switch (type)
+        {
+            case WidgetComponentType.Clock:
+            {
+                var picker = new TimeZonePickerWindow();
+                if (picker.ShowDialog() != true || picker.SelectedTimeZone is null)
+                    return null;
+                return new LadaItem { IsClockWidget = true, TimeZoneId = picker.SelectedTimeZone.Id, DisplayName = picker.SelectedTimeZone.DisplayName };
+            }
+            case WidgetComponentType.Timer:
+            {
+                var picker = new TimerDurationPickerWindow();
+                if (picker.ShowDialog() != true)
+                    return null;
+                var totalSeconds = (int)picker.SelectedDuration.TotalSeconds;
+                return new LadaItem { IsTimerWidget = true, DisplayName = Strings.TimerWidgetMenuItem, TimerDurationSeconds = totalSeconds, TimerRemainingSeconds = totalSeconds };
+            }
+            case WidgetComponentType.Disk:
+            {
+                var drive = DriveInfo.GetDrives().FirstOrDefault(d => d.IsReady);
+                if (drive is null)
+                    return null;
+                return new LadaItem { IsDiskWidget = true, DrivePath = drive.Name, DisplayName = drive.Name };
+            }
+            case WidgetComponentType.Battery:
+                return new LadaItem { IsBatteryWidget = true, DisplayName = Strings.BatteryWidgetMenuItem };
+            case WidgetComponentType.Memory:
+                return new LadaItem { IsMemoryWidget = true, DisplayName = Strings.MemoryWidgetMenuItem };
+            case WidgetComponentType.Cpu:
+                return new LadaItem { IsCpuWidget = true, DisplayName = Strings.CpuWidgetMenuItem };
+            case WidgetComponentType.Gpu:
+            {
+                _hardwareMonitorService.EnsureStarted();
+                var gpus = _hardwareMonitorService.GetGpus();
+                if (gpus.Count == 0)
+                    return null;
+                var gpu = gpus[0];
+                return new LadaItem { IsGpuWidget = true, GpuIdentifier = gpu.Id, DisplayName = gpu.Name };
+            }
+            case WidgetComponentType.Network:
+            {
+                _hardwareMonitorService.EnsureStarted();
+                var adapters = _hardwareMonitorService.GetNetworkAdapters();
+                if (adapters.Count == 0)
+                    return null;
+                var adapter = adapters[0];
+                return new LadaItem { IsNetworkWidget = true, NetworkAdapterIdentifier = adapter.Id, DisplayName = adapter.Name };
+            }
+            default:
+                throw new ArgumentOutOfRangeException(nameof(type));
+        }
     }
 
     // Arranges every currently visible lada into a flow layout on the
