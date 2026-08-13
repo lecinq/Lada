@@ -213,7 +213,7 @@ public partial class App : Application
 
     private void CreateLadaWindow(LadaLayout layout)
     {
-        var window = new LadaWindow(layout, _themeManager, _localizationManager, _hoverFadeManager, _magnetismManager, _perspectiveTiltManager, _hudGlowManager, _customColorPaletteService, _hardwareMonitorService, _gmailAuthService, _gmailPollingService, () => _ladaWindows);
+        var window = new LadaWindow(layout, _themeManager, _localizationManager, _hoverFadeManager, _magnetismManager, _perspectiveTiltManager, _hudGlowManager, _widgetChromeManager, _customColorPaletteService, _hardwareMonitorService, _gmailAuthService, _gmailPollingService, () => _ladaWindows);
         window.LayoutChanged += (_, _) => PersistLayout();
         window.ItemLaunchFailed += message => _trayIconManager.ShowBalloon("Lada", message);
         window.DrawerOperationFailed += message => _trayIconManager.ShowBalloon("Lada", message);

@@ -33,19 +33,27 @@ public partial class LadaWindow : Window
     private Point _titleBarDragStart;
     private bool _isDraggingTitleBar;
     private Vector _pendingDragDelta;
+    private bool _isWidget;
+    private WidgetChromeManager? _widgetChromeManager;
 
     public event EventHandler? LayoutChanged;
     public event Action? NewLadaRequested;
     public event Action? DeleteRequested;
 
-    public LadaWindow(LadaLayout layout, ThemeManager themeManager, LocalizationManager localizationManager, HoverFadeManager hoverFadeManager, MagnetismManager magnetismManager, PerspectiveTiltManager perspectiveTiltManager, HudGlowManager hudGlowManager, CustomColorPaletteService customColorPaletteService, HardwareMonitorService hardwareMonitorService, GmailAuthService gmailAuthService, GmailPollingService gmailPollingService, Func<IEnumerable<LadaWindow>> getAllLadaWindows)
+    public LadaWindow(LadaLayout layout, ThemeManager themeManager, LocalizationManager localizationManager, HoverFadeManager hoverFadeManager, MagnetismManager magnetismManager, PerspectiveTiltManager perspectiveTiltManager, HudGlowManager hudGlowManager, WidgetChromeManager widgetChromeManager, CustomColorPaletteService customColorPaletteService, HardwareMonitorService hardwareMonitorService, GmailAuthService gmailAuthService, GmailPollingService gmailPollingService, Func<IEnumerable<LadaWindow>> getAllLadaWindows)
     {
         InitializeComponent();
 
         _id = layout.Id;
+        _isWidget = layout.IsWidget;
         _tabs = layout.ResolveTabs();
         _activeTabIndex = Math.Clamp(layout.ActiveTabIndex, 0, _tabs.Count - 1);
         _items = _tabs[_activeTabIndex].Items;
+
+        if (_isWidget)
+        {
+            ResizeThumb.Visibility = Visibility.Collapsed;
+        }
 
         _magnetismManager = magnetismManager;
         _customColorPaletteService = customColorPaletteService;
@@ -93,13 +101,38 @@ public partial class LadaWindow : Window
         UpdateIconButtonVisual();
         InitializeIconPickerOutsideClickAutoClose();
         InitializeCustomColorPicker();
-        InitializeSortMenu();
-        InitializeResizeMenu();
-        InitializeToDoMemoContextMenus();
-        InitializeToDoMemoActivation();
-        InitializeToDoListDragTarget();
+
+        if (!_isWidget)
+        {
+            InitializeSortMenu();
+            InitializeResizeMenu();
+            ResizeThumb.DragStarted += (_, _) =>
+            {
+                CacheResizeFloors();
+                CompositionTarget.Rendering += OnResizeCompositionRendering;
+            };
+            ResizeThumb.DragCompleted += (_, _) =>
+            {
+                CompositionTarget.Rendering -= OnResizeCompositionRendering;
+                _pendingResizeDelta = default;
+            };
+            InitializeToDoMemoContextMenus();
+            InitializeToDoMemoActivation();
+            InitializeToDoListDragTarget();
+            RenderTabStrip();
+        }
+
         UpdateTabContentModeVisuals();
-        RenderTabStrip();
+
+        _widgetChromeManager = widgetChromeManager;
+        if (_isWidget)
+        {
+            FitWindowToContent();
+            _widgetChromeManager.Changed += UpdateWidgetChromeVisibility;
+            Closed += (_, _) => _widgetChromeManager!.Changed -= UpdateWidgetChromeVisibility;
+            UpdateWidgetChromeVisibility();
+        }
+
         Closed += (_, _) =>
         {
             DisposeAllDrawerWatchers();
@@ -135,6 +168,7 @@ public partial class LadaWindow : Window
             IsFolded = _isFolded,
             IconId = _iconId,
             IconColor = _iconColor,
+            IsWidget = _isWidget,
             ActiveTabIndex = _activeTabIndex,
             Tabs = _tabs.Select(t => new LadaTab
             {
@@ -147,6 +181,31 @@ public partial class LadaWindow : Window
             }).ToList()
         };
     }
+
+    // Toggled globally from the tray menu (App.xaml.cs), applied to every
+    // open widget at once. Collapsing TitleBar alone wouldn't remove its
+    // reserved space -- TitleBarRow has a fixed pixel Height in XAML, not
+    // Auto, so it needs its own Height zeroed out too for the window to
+    // actually shrink down to just the component (see EffectiveTitleBarHeight
+    // below for why the content-fit math needs the same adjustment).
+    private void UpdateWidgetChromeVisibility()
+    {
+        if (!_isWidget || _widgetChromeManager is null)
+            return;
+
+        var visible = _widgetChromeManager.Enabled;
+        TitleBar.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        TitleBarRow.Height = visible ? new GridLength(TitleBarHeight) : new GridLength(0);
+        FitWindowToContent();
+    }
+
+    // TitleBarHeight is a fixed constant everywhere else (a normal lada
+    // always has a title row), but a widget's own reserved title space can
+    // be zero when chrome is hidden (UpdateWidgetChromeVisibility) -- both
+    // ComputeNeededContentHeight and FitWindowToContent's icon-grid branch
+    // need to size against whichever is actually true right now.
+    private double EffectiveTitleBarHeight =>
+        _isWidget && _widgetChromeManager?.Enabled == false ? 0 : TitleBarHeight;
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -338,23 +397,20 @@ public partial class LadaWindow : Window
         }
     }
 
-    private void ResizeThumb_DragDelta(object sender, DragDeltaEventArgs e)
+    private double _resizeWidthFloor;
+    private double _resizeHeightFloor;
+
+    // The content-size floor (below) can't change mid-drag -- nothing is
+    // being added to or removed from the lada while the chevron is held --
+    // so it only needs computing once per drag gesture, not on every single
+    // DragDelta tick. ComputeNeededContentHeight() forces a full UpdateLayout()
+    // pass, which is genuinely expensive; recomputing it per tick (or even
+    // batched once per rendered frame, which was tried and made the
+    // stutter worse by letting bigger deltas pile up behind each expensive
+    // call) outran what a fast mouse drag could keep up with and made the
+    // resize appear to "lose" the mouse.
+    private void CacheResizeFloors()
     {
-        // Width/Height are the padded (Height-DP) values throughout, and
-        // e.HorizontalChange/VerticalChange are raw pixel deltas -- both
-        // sides of "+" already agree on that, so the delta math itself
-        // needs no adjustment. Only the floor constants do, since 160 and
-        // TitleBarHeight + 40 were meant as logical minimums.
-        //
-        // Neither dimension can shrink below what the CURRENT content
-        // needs (same measurements EnsureContentFits/FitWindowToContent
-        // already use) -- otherwise manually dragging the chevron could
-        // shrink a lada with, say, a timer widget in it down past the
-        // widget's own size, clipping it off mid-way rather than stopping
-        // there the way it should (folding via double-click on the title
-        // bar is the only way to go smaller than the content, by design).
-        // ComputeNeededContentHeight() calls UpdateLayout() itself, which
-        // ComputeIconGridContentExtent() then relies on having already run.
         var contentHeightFloor = ComputeNeededContentHeight() + 2 * HudGlowMargin;
         var widthFloor = 160 + 2 * HudGlowMargin;
         if (_tabs[_activeTabIndex].ContentMode == TabContentMode.Icons && _tabs[_activeTabIndex].ViewMode == ItemViewMode.Grid)
@@ -363,10 +419,43 @@ public partial class LadaWindow : Window
             widthFloor = Math.Max(widthFloor, IconGridOuterMargin + contentWidth + GridSizeSafetyMargin + 2 * HudGlowMargin);
         }
 
-        var newWidth = Math.Max(widthFloor, Width + e.HorizontalChange);
-        var newHeight = Math.Max(Math.Max(TitleBarHeight + 40 + 2 * HudGlowMargin, contentHeightFloor), Height + e.VerticalChange);
+        _resizeWidthFloor = widthFloor;
+        _resizeHeightFloor = Math.Max(TitleBarHeight + 40 + 2 * HudGlowMargin, contentHeightFloor);
+    }
+
+    private Vector _pendingResizeDelta;
+
+    private void ResizeThumb_DragDelta(object sender, DragDeltaEventArgs e)
+    {
+        // Applying Width/Height synchronously on every single DragDelta
+        // tick means WPF re-renders the whole lada into a texture on every
+        // tick too, while Perspective 3D is on (Viewport2DVisual3D hosting,
+        // see LadaWindow.PerspectiveTilt.cs) -- measured at 8-20ms per
+        // application, plenty to make a fast real mouse drag pile up input
+        // faster than that can drain, ending in WPF/Windows actually
+        // dropping mouse capture outright (confirmed via diagnostic
+        // logging: LostMouseCapture fired after 600+ms with zero DragDelta
+        // ticks processed). Accumulating here and applying at most once
+        // per rendered frame (below) caps how often that expensive
+        // re-render has to happen, regardless of how fast the mouse moves.
+        _pendingResizeDelta += new Vector(e.HorizontalChange, e.VerticalChange);
+    }
+
+    // Applies at most one accumulated resize delta per rendered frame --
+    // see the comment in ResizeThumb_DragDelta for why this exists. The
+    // floors come from CacheResizeFloors (DragStarted), not recomputed
+    // here -- ComputeNeededContentHeight() forces its own full layout
+    // pass, and doing that on top of this would defeat the point.
+    private void OnResizeCompositionRendering(object? sender, EventArgs e)
+    {
+        if (_pendingResizeDelta == default)
+            return;
+
+        var newWidth = Math.Max(_resizeWidthFloor, Width + _pendingResizeDelta.X);
+        var newHeight = Math.Max(_resizeHeightFloor, Height + _pendingResizeDelta.Y);
         Width = newWidth;
         Height = newHeight;
+        _pendingResizeDelta = default;
     }
 
     private static readonly (int Columns, int Rows)[] SizePresets =
@@ -553,7 +642,7 @@ public partial class LadaWindow : Window
     {
         UpdateLayout();
         ActiveItemsPanel.Measure(new Size(ActiveItemsPanel.ActualWidth, double.PositiveInfinity));
-        return TitleBarHeight + ActiveItemsPanel.DesiredSize.Height + IconGridOuterMargin + GridSizeSafetyMargin;
+        return EffectiveTitleBarHeight + ActiveItemsPanel.DesiredSize.Height + IconGridOuterMargin + GridSizeSafetyMargin;
     }
 
     // Not a Measure() -- WrapPanel has no independent "desired width" to ask
@@ -599,7 +688,7 @@ public partial class LadaWindow : Window
         {
             var (contentWidth, contentHeight) = ComputeIconGridContentExtent();
             Width = Math.Max(160, IconGridOuterMargin + contentWidth + GridSizeSafetyMargin) + 2 * HudGlowMargin;
-            Height = Math.Max(TitleBarHeight + 40, TitleBarHeight + contentHeight + IconGridOuterMargin + GridSizeSafetyMargin) + 2 * HudGlowMargin;
+            Height = Math.Max(EffectiveTitleBarHeight + 40, EffectiveTitleBarHeight + contentHeight + IconGridOuterMargin + GridSizeSafetyMargin) + 2 * HudGlowMargin;
         }
         else
         {

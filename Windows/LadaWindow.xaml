@@ -10,7 +10,19 @@
         PreviewMouseLeftButtonDown="LadaWindow_PreviewMouseLeftButtonDown"
         KeyDown="LadaWindow_KeyDown">
 
-    <Viewport3D x:Name="TiltViewport">
+    <Grid x:Name="RootHost">
+    <!-- TiltRootContent (below) starts here as a normal 2D child, crisp,
+         exact hit-testing, no resize drift. LadaWindow.PerspectiveTilt.cs
+         moves it into TiltQuad.Visual (and shows this Viewport3D) only
+         while Perspective Tilt is actually enabled, since that's the only
+         time real 3D rotation is needed, confirmed by a live A/B test
+         that hosting through Viewport3D unconditionally (the original
+         implementation) was the cause of a blur/resize-drift/hit-test-
+         offset bug: WPF's 3D pipeline always resamples Viewport2DVisual3D
+         content through mipmapped bilinear texture sampling, which softens
+         it and makes exact 1:1 pixel/hit-test alignment depend on
+         floating-point-perfect camera/mesh/viewport correspondence. -->
+    <Viewport3D x:Name="TiltViewport" Visibility="Collapsed">
         <Viewport3D.Camera>
             <PerspectiveCamera x:Name="TiltCamera" Position="0,0,500" LookDirection="0,0,-1" UpDirection="0,1,0" FieldOfView="30"/>
         </Viewport3D.Camera>
@@ -44,8 +56,10 @@
             <Viewport2DVisual3D.Material>
                 <DiffuseMaterial Brush="White" Viewport2DVisual3D.IsVisualHostMaterial="True"/>
             </Viewport2DVisual3D.Material>
+        </Viewport2DVisual3D>
+    </Viewport3D>
 
-    <Grid x:Name="TiltRootContent" Width="320" Height="240">
+    <Grid x:Name="TiltRootContent" Width="320" Height="240" RenderOptions.BitmapScalingMode="NearestNeighbor">
         <!-- Sized to the window's FULL padded extent (LadaWindow.HudGlow.cs),
              so HudGlowRing's blur has real room to bleed into between
              MainBorder's edge and here. MainBorder itself stays centered
@@ -71,7 +85,7 @@
 
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="32"/>
+                <RowDefinition x:Name="TitleBarRow" Height="32"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
@@ -293,6 +307,5 @@
         </Grid>
     </Border>
     </Grid>
-        </Viewport2DVisual3D>
-    </Viewport3D>
+    </Grid>
 </Window>
