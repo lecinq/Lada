@@ -10,17 +10,25 @@ namespace Lada.Windows;
 public partial class LadaWindow
 {
     private bool _isSyncingColorPicker;
+    private CustomColorPaletteService? _customColorPaletteService;
 
     // Wired once (these are static XAML elements, not rebuilt per popup
     // open like the preset swatches in PopulatePicker).
     private void InitializeCustomColorPicker()
     {
         ColorHexBox.ToolTip = Strings.CustomColorHexTooltip;
+        SaveColorButton.ToolTip = Strings.SaveColorTooltip;
 
         HueSlider.ValueChanged += (_, _) => ApplyColorFromSliders();
         SaturationSlider.ValueChanged += (_, _) => ApplyColorFromSliders();
         LightnessSlider.ValueChanged += (_, _) => ApplyColorFromSliders();
         ColorHexBox.TextChanged += (_, _) => ApplyColorFromHexBox();
+        SaveColorButton.MouseLeftButtonDown += (_, e) =>
+        {
+            _customColorPaletteService?.Add(_iconColor);
+            PopulatePicker();
+            e.Handled = true;
+        };
 
         AttachClickAnywhereToDrag(HueSlider);
         AttachClickAnywhereToDrag(SaturationSlider);

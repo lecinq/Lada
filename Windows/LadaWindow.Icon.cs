@@ -152,6 +152,36 @@ public partial class LadaWindow
             ColorPickerRow.Children.Add(dot);
         }
 
+        SavedColorsRow.Children.Clear();
+        var savedColors = _customColorPaletteService?.Colors ?? Array.Empty<string>();
+        foreach (var hex in savedColors)
+        {
+            var dot = new Border
+            {
+                Width = 20,
+                Height = 20,
+                Margin = new Thickness(2),
+                CornerRadius = new CornerRadius(10),
+                Cursor = Cursors.Hand,
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)!)
+            };
+            dot.MouseLeftButtonDown += (_, e) =>
+            {
+                _iconColor = hex;
+                UpdateIconButtonVisual();
+                ApplyThemeColors();
+                RefreshDynamicContent();
+                PopulatePicker();
+                LayoutChanged?.Invoke(this, System.EventArgs.Empty);
+                e.Handled = true;
+            };
+            SavedColorsRow.Children.Add(dot);
+        }
+
+        var hasSavedColors = savedColors.Count > 0;
+        SavedColorsDivider.Visibility = hasSavedColors ? Visibility.Visible : Visibility.Collapsed;
+        SavedColorsRow.Visibility = hasSavedColors ? Visibility.Visible : Visibility.Collapsed;
+
         RefreshCustomColorPicker();
     }
 

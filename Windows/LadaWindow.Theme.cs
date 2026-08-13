@@ -117,6 +117,27 @@ public partial class LadaWindow
             CustomColorDivider.SetResourceReference(Border.BackgroundProperty, "LadaBorderBrush");
             _resizeChevron?.SetResourceReference(Shape.StrokeProperty, "SecondaryTextBrush");
         }
+
+        ApplyMenuAccentColors();
+        UpdateHudGlow();
+    }
+
+    // Every ContextMenu in this window (base sort/new-widget menu, tab
+    // headers, widget menus, ...) is styled via MenuStyles.xaml, which reads
+    // AccentBrush/SelectedBackgroundBrush as DynamicResource -- normally the
+    // theme's own fixed color (blue in Midnight, green in Anderson) shared
+    // app-wide. A ContextMenu's logical parent becomes its PlacementTarget
+    // once opened, so a DynamicResource lookup still bubbles up through this
+    // window's own Resources first: overriding the two keys here locally
+    // makes every menu's selection highlight and radio glyph follow this
+    // specific lada's own chosen color instead, in every theme -- otherwise
+    // a lada whose accent was changed away from the default blue would still
+    // show the old fixed color the moment its context menu opened.
+    private void ApplyMenuAccentColors()
+    {
+        var accent = (Color)ColorConverter.ConvertFromString(_iconColor)!;
+        Resources["AccentBrush"] = new SolidColorBrush(accent);
+        Resources["SelectedBackgroundBrush"] = new SolidColorBrush(accent) { Opacity = 0.3 };
     }
 
     // Item labels use IconLabelStyle's DynamicResource-bound SecondaryTextBrush

@@ -81,8 +81,12 @@ public partial class LadaWindow
         // drag path needs this; the one-shot, non-interactive moves
         // (EnsureVisible, Ranger arrange) keep using SetPhysicalPosition
         // since a single move has no continuous redraw to desync from.
+        // targetX/Y are the LOGICAL (visible card) position -- Left/Top are
+        // the real, HudGlowMargin-padded HWND position, so the margin is
+        // subtracted here rather than added, the mirror image of
+        // GetPhysicalBounds/SetPhysicalPosition (LadaWindow.Monitor.cs).
         var dpi = VisualTreeHelper.GetDpi(this);
-        Left = targetX / dpi.DpiScaleX;
-        Top = targetY / dpi.DpiScaleY;
+        Left = targetX / dpi.DpiScaleX - HudGlowMargin;
+        Top = targetY / dpi.DpiScaleY - HudGlowMargin;
     }
 }

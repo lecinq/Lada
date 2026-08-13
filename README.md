@@ -1,6 +1,6 @@
 # Lada
 
-**Version 0.1.6** — Lada is finally out of the box. A box unboxing itself!
+**Version 0.1.7** — Lada is finally out of the box. A box unboxing itself!
 
 Lada is a personal desktop organizer for Windows 11: semi-transparent containers on the desktop that hold shortcuts, behaving like lightweight floating windows instead of normal applications.
 

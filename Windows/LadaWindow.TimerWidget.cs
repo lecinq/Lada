@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -17,6 +19,7 @@ public partial class LadaWindow
     private const double TimerBarWidth = 70;
 
     private readonly Dictionary<LadaItem, DispatcherTimer> _timerWidgetTimers = new();
+    private readonly Dictionary<LadaItem, CancellationTokenSource> _timerAlertTokens = new();
 
     public event Action<string>? TimerFinished;
 
@@ -148,6 +151,20 @@ public partial class LadaWindow
 
     private void ToggleTimerRunning(LadaItem item, TextBlock timeLabel, Border barFill)
     {
+        // A click while the finished-alert is still beeping only silences
+        // it (StopTimerTicking cancels the alert token) -- it does NOT
+        // fall through to starting a fresh countdown in the same click.
+        // Without this check, TimerEndUtc being null (the finished state)
+        // was indistinguishable from "never started", so the very click
+        // meant to dismiss the alarm also immediately restarted it.
+        if (_timerAlertTokens.ContainsKey(item))
+        {
+            StopTimerTicking(item);
+            UpdateTimerDisplay(item, timeLabel, barFill);
+            LayoutChanged?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
         if (item.TimerEndUtc is not null)
         {
             item.TimerRemainingSeconds = GetCurrentRemaining(item).TotalSeconds;
@@ -207,6 +224,7 @@ public partial class LadaWindow
             item.TimerEndUtc = null;
             item.TimerRemainingSeconds = 0;
             StopTimerTicking(item);
+            PlayTimerFinishedSound(item);
             TimerFinished?.Invoke(Strings.TimerFinishedMessage(item.DisplayName));
             LayoutChanged?.Invoke(this, EventArgs.Empty);
             remaining = TimeSpan.Zero;
@@ -224,6 +242,35 @@ public partial class LadaWindow
             ? remaining.ToString(@"hh\:mm\:ss")
             : remaining.ToString(@"mm\:ss");
 
+    // A synthesized double-beep (Console.Beep, no audio asset needed) rather
+    // than SystemSounds -- that shares its sound with the tray balloon
+    // notification fired right after this, so both firing together just
+    // played the same alert twice. Console.Beep blocks the calling thread
+    // for its duration, so this runs on a background thread rather than the
+    // UI thread. Each double-beep spans ~200ms, then 800ms of silence
+    // before the next one -- a 1-second loop -- and keeps repeating until
+    // StopTimerTicking cancels this item's token, which already happens
+    // from every path that touches this timer again (clicking the widget
+    // to restart it, Reset, Change duration, removing the item, or closing
+    // the lada), so no separate "dismiss" gesture was needed.
+    private void PlayTimerFinishedSound(LadaItem item)
+    {
+        var cts = new CancellationTokenSource();
+        _timerAlertTokens[item] = cts;
+        var token = cts.Token;
+
+        Task.Run(() =>
+        {
+            while (!token.IsCancellationRequested)
+            {
+                Console.Beep(1500, 90);
+                if (token.WaitHandle.WaitOne(20)) return;
+                Console.Beep(1500, 90);
+                if (token.WaitHandle.WaitOne(800)) return;
+            }
+        });
+    }
+
     private void StartTimerTicking(LadaItem item, TextBlock timeLabel, Border barFill)
     {
         StopTimerTicking(item);
@@ -235,6 +282,11 @@ public partial class LadaWindow
         _timerWidgetTimers[item] = timer;
     }
 
+    // Also cancels this item's finished-alert loop, if one is currently
+    // running -- StopTimerTicking is already called from every path that
+    // should silence it (see PlayTimerFinishedSound), so hooking it in
+    // here covers all of them at once instead of repeating the same
+    // cancellation at each call site.
     private void StopTimerTicking(LadaItem item)
     {
         if (_timerWidgetTimers.TryGetValue(item, out var timer))
@@ -242,11 +294,30 @@ public partial class LadaWindow
             timer.Stop();
             _timerWidgetTimers.Remove(item);
         }
+
+        if (_timerAlertTokens.TryGetValue(item, out var cts))
+        {
+            cts.Cancel();
+            _timerAlertTokens.Remove(item);
+        }
     }
 
     private void DisposeAllTimerWidgetTimers()
     {
         foreach (var item in new List<LadaItem>(_timerWidgetTimers.Keys))
+        {
+            StopTimerTicking(item);
+        }
+    }
+
+    // A timer that already finished (and is mid-alert-loop) has no entry
+    // left in _timerWidgetTimers -- its ticking timer stopped the moment it
+    // hit zero -- so DisposeAllTimerWidgetTimers' own loop above wouldn't
+    // reach it. Without this, closing a lada while one of its timers is
+    // still beeping would leave that background loop running forever.
+    private void DisposeAllTimerAlerts()
+    {
+        foreach (var item in new List<LadaItem>(_timerAlertTokens.Keys))
         {
             StopTimerTicking(item);
         }

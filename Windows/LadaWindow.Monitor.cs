@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using System.Windows.Media;
 using Lada.Native;
 using Lada.Services;
 
@@ -18,8 +19,7 @@ public partial class LadaWindow
         if (_hwnd == IntPtr.Zero)
             return false;
 
-        NativeMethods.GetWindowRect(_hwnd, out var rect);
-        var ladaBounds = new Rectangle(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top);
+        var ladaBounds = GetPhysicalBounds();
 
         var screenBounds = Screen.AllScreens.Select(s => s.Bounds).ToList();
 
@@ -29,29 +29,45 @@ public partial class LadaWindow
         var primaryBounds = Screen.PrimaryScreen!.Bounds;
         var target = MonitorLayoutService.ComputeFallbackPosition(primaryBounds, cascadeIndex);
 
-        NativeMethods.SetWindowPos(
-            _hwnd, IntPtr.Zero, target.X, target.Y, 0, 0,
-            NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE);
+        SetPhysicalPosition(target.X, target.Y);
 
         return true;
     }
 
     // Physical pixels (via GetWindowRect), for cross-window position
     // comparisons -- never compare this against Window.Left/Top (DIPs)
-    // directly, see this plan's Global Constraints.
+    // directly, see this plan's Global Constraints. Returns the LOGICAL
+    // (visible card) rect, not the real HWND rect -- HudGlowMargin
+    // (LadaWindow.HudGlow.cs) pads the real window on every side, so every
+    // caller of this method (magnetism, off-screen detection, arrange)
+    // keeps working against the card's own visible bounds without needing
+    // to know the margin exists.
     public Rectangle GetPhysicalBounds()
     {
         NativeMethods.GetWindowRect(_hwnd, out var rect);
-        return new Rectangle(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top);
+        var (marginX, marginY) = GetPhysicalMargin();
+        return new Rectangle(
+            rect.Left + marginX, rect.Top + marginY,
+            (rect.Right - rect.Left) - 2 * marginX, (rect.Bottom - rect.Top) - 2 * marginY);
     }
 
-    // Moves the window via SetWindowPos (physical pixels). WPF's own
-    // Left/Top update themselves reactively afterward (fact-checked live
-    // this session), so no manual assignment is needed, and
-    // LocationChanged still fires normally for persistence.
+    // Moves the window via SetWindowPos (physical pixels) so the LOGICAL
+    // (visible card) top-left ends up at (x, y) -- offsets by
+    // HudGlowMargin internally so callers keep passing the same logical
+    // coordinates GetPhysicalBounds returns, unaware of the padding.
+    // WPF's own Left/Top update themselves reactively afterward
+    // (fact-checked live this session), so no manual assignment is needed,
+    // and LocationChanged still fires normally for persistence.
     public void SetPhysicalPosition(int x, int y)
     {
-        NativeMethods.SetWindowPos(_hwnd, IntPtr.Zero, x, y, 0, 0,
+        var (marginX, marginY) = GetPhysicalMargin();
+        NativeMethods.SetWindowPos(_hwnd, IntPtr.Zero, x - marginX, y - marginY, 0, 0,
             NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE);
+    }
+
+    private (int X, int Y) GetPhysicalMargin()
+    {
+        var dpi = VisualTreeHelper.GetDpi(this);
+        return ((int)Math.Round(HudGlowMargin * dpi.DpiScaleX), (int)Math.Round(HudGlowMargin * dpi.DpiScaleY));
     }
 }
