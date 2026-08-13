@@ -23,6 +23,7 @@ public partial class App : Application
     private MagnetismManager _magnetismManager = null!;
     private PerspectiveTiltManager _perspectiveTiltManager = null!;
     private HudGlowManager _hudGlowManager = null!;
+    private WidgetChromeManager _widgetChromeManager = null!;
     private CustomColorPaletteService _customColorPaletteService = null!;
     private HardwareMonitorService _hardwareMonitorService = null!;
     private GmailAuthService _gmailAuthService = null!;
@@ -63,6 +64,9 @@ public partial class App : Application
 
         _hudGlowManager = new HudGlowManager();
         _hudGlowManager.Apply(savedLayout.HudGlowEnabled);
+
+        _widgetChromeManager = new WidgetChromeManager();
+        _widgetChromeManager.Apply(savedLayout.WidgetChromeVisible);
 
         _customColorPaletteService = new CustomColorPaletteService();
         _customColorPaletteService.Apply(savedLayout.CustomColors);
@@ -280,6 +284,7 @@ public partial class App : Application
             MagnetismEnabled = _magnetismManager.Enabled,
             PerspectiveTiltEnabled = _perspectiveTiltManager.Enabled,
             HudGlowEnabled = _hudGlowManager.Enabled,
+            WidgetChromeVisible = _widgetChromeManager.Enabled,
             CustomColors = _customColorPaletteService.Colors.ToList(),
             Ladas = _ladaWindows.Select(w => w.ToLayout()).ToList()
         };
@@ -296,6 +301,7 @@ public partial class App : Application
             MagnetismEnabled = _magnetismManager.Enabled,
             PerspectiveTiltEnabled = _perspectiveTiltManager.Enabled,
             HudGlowEnabled = _hudGlowManager.Enabled,
+            WidgetChromeVisible = _widgetChromeManager.Enabled,
             CustomColors = _customColorPaletteService.Colors.ToList(),
             Ladas = _ladaWindows.Select(w => w.ToLayout()).ToList()
         };
