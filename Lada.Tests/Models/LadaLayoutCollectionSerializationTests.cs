@@ -641,4 +641,59 @@ public class LadaLayoutCollectionSerializationTests
         Assert.False(item.IsTimerWidget);
         Assert.Null(item.TimerEndUtc);
     }
+
+    [Fact]
+    public void RoundTrip_PreservesIsWidget()
+    {
+        var original = new LadaLayoutCollection
+        {
+            Ladas = { new LadaLayout { IsWidget = true } }
+        };
+
+        var json = JsonSerializer.Serialize(original, LadaJson.Options);
+        var restored = JsonSerializer.Deserialize<LadaLayoutCollection>(json, LadaJson.Options);
+
+        Assert.True(Assert.Single(restored!.Ladas).IsWidget);
+    }
+
+    [Fact]
+    public void Deserialize_LegacyJsonWithoutIsWidgetField_DefaultsToFalse()
+    {
+        const string legacyJson = """
+            {
+              "ladas": [
+                { "id": "8a8e051e-6ea5-4dea-9762-5a381d11d41c", "title": "Lada", "x": 100, "y": 100, "width": 320, "height": 240, "isFolded": false, "items": [] }
+              ]
+            }
+            """;
+
+        var restored = JsonSerializer.Deserialize<LadaLayoutCollection>(legacyJson, LadaJson.Options);
+
+        Assert.False(Assert.Single(restored!.Ladas).IsWidget);
+    }
+
+    [Fact]
+    public void RoundTrip_PreservesWidgetChromeVisible()
+    {
+        var original = new LadaLayoutCollection { WidgetChromeVisible = false };
+
+        var json = JsonSerializer.Serialize(original, LadaJson.Options);
+        var restored = JsonSerializer.Deserialize<LadaLayoutCollection>(json, LadaJson.Options);
+
+        Assert.False(restored!.WidgetChromeVisible);
+    }
+
+    [Fact]
+    public void Deserialize_LegacyJsonWithoutWidgetChromeVisibleField_DefaultsToTrue()
+    {
+        const string legacyJson = """
+            {
+              "ladas": []
+            }
+            """;
+
+        var restored = JsonSerializer.Deserialize<LadaLayoutCollection>(legacyJson, LadaJson.Options);
+
+        Assert.True(restored!.WidgetChromeVisible);
+    }
 }

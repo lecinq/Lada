@@ -15,6 +15,7 @@ public sealed class LadaLayout
     public string IconId { get; set; } = "table";
     public string IconColor { get; set; } = "#5B8DEF";
     public bool AutoSortEnabled { get; set; }
+    public bool IsWidget { get; set; }
     public List<LadaItem> Items { get; set; } = new();
     public List<LadaTab> Tabs { get; set; } = new();
     public int ActiveTabIndex { get; set; }

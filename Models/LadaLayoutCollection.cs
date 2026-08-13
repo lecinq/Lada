@@ -14,6 +14,14 @@ public sealed class LadaLayoutCollection
 
     public bool HoverFadeEnabled { get; set; } = false;
     public bool MagnetismEnabled { get; set; } = false;
+    public bool PerspectiveTiltEnabled { get; set; } = false;
+    public bool HudGlowEnabled { get; set; } = false;
+    public bool WidgetChromeVisible { get; set; } = true;
+
+    // Colors saved permanently from the custom color picker (see
+    // CustomColorPaletteService), shared across every lada rather than
+    // stored per-lada like IconColor.
+    public List<string> CustomColors { get; set; } = new();
 
     public List<LadaLayout> Ladas { get; set; } = new();
 }
