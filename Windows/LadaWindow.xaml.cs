@@ -38,6 +38,7 @@ public partial class LadaWindow : Window
 
     public event EventHandler? LayoutChanged;
     public event Action? NewLadaRequested;
+    public event Action<WidgetComponentType>? NewWidgetRequested;
     public event Action? DeleteRequested;
 
     public LadaWindow(LadaLayout layout, ThemeManager themeManager, LocalizationManager localizationManager, HoverFadeManager hoverFadeManager, MagnetismManager magnetismManager, PerspectiveTiltManager perspectiveTiltManager, HudGlowManager hudGlowManager, WidgetChromeManager widgetChromeManager, CustomColorPaletteService customColorPaletteService, HardwareMonitorService hardwareMonitorService, GmailAuthService gmailAuthService, GmailPollingService gmailPollingService, Func<IEnumerable<LadaWindow>> getAllLadaWindows)
@@ -127,10 +128,18 @@ public partial class LadaWindow : Window
         _widgetChromeManager = widgetChromeManager;
         if (_isWidget)
         {
-            FitWindowToContent();
+            // Deferred to Loaded rather than run here: this window has no
+            // presentation source yet at this point in the constructor
+            // (Show() only happens after the constructor returns, back in
+            // App.xaml.cs), and ComputeIconGridContentExtent reads each
+            // child's real rendered RenderSize/bounds -- measuring before
+            // the window has ever actually been laid out against a real
+            // surface produced a near-zero content size, which meant every
+            // new widget silently fell back to its floor size (~160x40)
+            // instead of fitting its actual component.
+            Loaded += (_, _) => UpdateWidgetChromeVisibility();
             _widgetChromeManager.Changed += UpdateWidgetChromeVisibility;
             Closed += (_, _) => _widgetChromeManager!.Changed -= UpdateWidgetChromeVisibility;
-            UpdateWidgetChromeVisibility();
         }
 
         Closed += (_, _) =>
@@ -429,16 +438,28 @@ public partial class LadaWindow : Window
     {
         // Applying Width/Height synchronously on every single DragDelta
         // tick means WPF re-renders the whole lada into a texture on every
-        // tick too, while Perspective 3D is on (Viewport2DVisual3D hosting,
-        // see LadaWindow.PerspectiveTilt.cs) -- measured at 8-20ms per
-        // application, plenty to make a fast real mouse drag pile up input
-        // faster than that can drain, ending in WPF/Windows actually
-        // dropping mouse capture outright (confirmed via diagnostic
-        // logging: LostMouseCapture fired after 600+ms with zero DragDelta
-        // ticks processed). Accumulating here and applying at most once
-        // per rendered frame (below) caps how often that expensive
-        // re-render has to happen, regardless of how fast the mouse moves.
-        _pendingResizeDelta += new Vector(e.HorizontalChange, e.VerticalChange);
+        // tick too, while Perspective 3D is actually hosting this window's
+        // content (Viewport2DVisual3D, see LadaWindow.PerspectiveTilt.cs) --
+        // measured at 8-20ms per application, plenty to make a fast real
+        // mouse drag pile up input faster than that can drain, ending in
+        // WPF/Windows actually dropping mouse capture outright (confirmed
+        // via diagnostic logging: LostMouseCapture fired after 600+ms with
+        // zero DragDelta ticks processed). Accumulating and applying at
+        // most once per rendered frame caps how often that expensive
+        // re-render has to happen -- but that same throttling makes an
+        // ordinary, cheap resize (3D off, the default) look choppy for no
+        // reason, since there's nothing expensive to protect against there.
+        // Only pay for the batching when the window is actually 3D-hosted.
+        if (_tiltHostedIn3D)
+        {
+            _pendingResizeDelta += new Vector(e.HorizontalChange, e.VerticalChange);
+            return;
+        }
+
+        var newWidth = Math.Max(_resizeWidthFloor, Width + e.HorizontalChange);
+        var newHeight = Math.Max(_resizeHeightFloor, Height + e.VerticalChange);
+        Width = newWidth;
+        Height = newHeight;
     }
 
     // Applies at most one accumulated resize delta per rendered frame --
