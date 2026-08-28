@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using Lada.Models;
 using Lada.Resources;
@@ -23,18 +24,27 @@ public partial class App : Application
     private MagnetismManager _magnetismManager = null!;
     private PerspectiveTiltManager _perspectiveTiltManager = null!;
     private HudGlowManager _hudGlowManager = null!;
+    private BackgroundBlurManager _backgroundBlurManager = null!;
+    private AppearanceCustomizationManager _appearanceCustomizationManager = null!;
     private WidgetChromeManager _widgetChromeManager = null!;
     private CustomColorPaletteService _customColorPaletteService = null!;
+    private AndersonColorSyncManager _andersonColorSyncManager = null!;
     private HardwareMonitorService _hardwareMonitorService = null!;
     private GmailAuthService _gmailAuthService = null!;
     private GmailPollingService _gmailPollingService = null!;
+    private WeatherService _weatherService = null!;
     private DesktopAutoOrganizeWatcher _desktopAutoOrganizeWatcher = null!;
     private readonly List<LadaWindow> _ladaWindows = new();
     private bool _overlayActive;
+    private bool _weatherTransferAuthorizedForSession;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Best effort: Lada remains usable with its normal transparent
+        // backgrounds when the optional Windows Acrylic runtime is absent.
+        WindowsAppRuntimeInitializer.TryInitialize();
 
         _layoutManager = new LayoutManager(LayoutManager.GetDefaultPath());
         var savedLayout = _layoutManager.Load();
@@ -65,6 +75,14 @@ public partial class App : Application
         _hudGlowManager = new HudGlowManager();
         _hudGlowManager.Apply(savedLayout.HudGlowEnabled);
 
+        _backgroundBlurManager = new BackgroundBlurManager();
+        _backgroundBlurManager.Apply(savedLayout.BackgroundBlurEnabled);
+
+        _appearanceCustomizationManager = new AppearanceCustomizationManager();
+        _appearanceCustomizationManager.ApplyBrightness(savedLayout.AppearanceBrightnessPercent);
+        _appearanceCustomizationManager.ApplyBackgroundColor(savedLayout.AppearanceBackgroundColor);
+        _appearanceCustomizationManager.Changed += PersistLayout;
+
         _widgetChromeManager = new WidgetChromeManager();
         _widgetChromeManager.Apply(savedLayout.WidgetChromeVisible);
 
@@ -72,7 +90,15 @@ public partial class App : Application
         _customColorPaletteService.Apply(savedLayout.CustomColors);
         _customColorPaletteService.Changed += PersistLayout;
 
+        _andersonColorSyncManager = new AndersonColorSyncManager();
+        var restoredAndersonColor = savedLayout.AndersonSynchronizedColor
+            ?? savedLayout.Ladas.FirstOrDefault()?.IconColor
+            ?? ColorPalette.ForTheme(AppTheme.Anderson)[0];
+        _andersonColorSyncManager.Apply(savedLayout.AndersonColorsSynchronized, restoredAndersonColor);
+        _andersonColorSyncManager.Changed += PersistLayout;
+
         _hardwareMonitorService = new HardwareMonitorService();
+        _weatherService = new WeatherService(WeatherService.GetDefaultPath());
 
         _gmailAuthService = new GmailAuthService(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Lada"));
         _gmailPollingService = new GmailPollingService();
@@ -92,6 +118,8 @@ public partial class App : Application
         _trayIconManager.NewLadaRequested += () => CreateNewLada();
         _trayIconManager.ThemeChangeRequested += ChangeTheme;
         _trayIconManager.SetActiveTheme(_themeManager.Current);
+        _trayIconManager.ForecastDebugWeatherRequested += ChangeForecastDebugWeather;
+        _trayIconManager.SetActiveForecastDebugWeather(_weatherService.DebugWeather);
         _trayIconManager.LanguageChangeRequested += ChangeLanguage;
         _trayIconManager.SetActiveLanguage(_localizationManager.Current);
         _trayIconManager.HoverFadeToggleRequested += ChangeHoverFade;
@@ -102,10 +130,15 @@ public partial class App : Application
         _trayIconManager.SetPerspectiveTiltEnabled(_perspectiveTiltManager.Enabled);
         _trayIconManager.HudGlowToggleRequested += ChangeHudGlow;
         _trayIconManager.SetHudGlowEnabled(_hudGlowManager.Enabled);
+        _trayIconManager.BackgroundBlurToggleRequested += ChangeBackgroundBlur;
+        _trayIconManager.SetBackgroundBlurEnabled(_backgroundBlurManager.Enabled);
         _trayIconManager.NewWidgetRequested += CreateNewWidget;
         _trayIconManager.WidgetChromeToggleRequested += ChangeWidgetChromeVisible;
         _trayIconManager.SetWidgetChromeEnabled(_widgetChromeManager.Enabled);
         _trayIconManager.ArrangeRequested += ArrangeAllLadas;
+        _trayIconManager.NewGmailLadaRequested += CreateNewGmailLada;
+        _trayIconManager.CustomizeRequested += () =>
+            new CustomizeWindow(_appearanceCustomizationManager).ShowDialog();
         _trayIconManager.AboutRequested += () => new AboutWindow().Show();
         _desktopToggleService = new DesktopToggleService(() => _ladaWindows);
         _desktopToggleService.Start();
@@ -118,6 +151,12 @@ public partial class App : Application
         _hotkeyService.ToggleAllRequested += () => _desktopToggleService.Toggle();
         _hotkeyService.HotkeyRegistrationFailed += message => _trayIconManager.ShowBalloon("Lada", message);
         _hotkeyService.Start();
+
+        // A saved Forecast session can render its last locally cached state
+        // immediately, but it never contacts the weather provider silently.
+        // Defer the consent dialog until all startup UI is fully available.
+        if (_themeManager.Current == AppTheme.Forecast)
+            _ = Dispatcher.InvokeAsync(EnableForecastWeatherAsync);
 
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
     }
@@ -137,11 +176,62 @@ public partial class App : Application
         }
     }
 
-    private void ChangeTheme(AppTheme theme)
+    private async void ChangeTheme(AppTheme theme)
     {
         _themeManager.Apply(theme);
         _trayIconManager.SetActiveTheme(theme);
         PersistLayout();
+
+        if (theme != AppTheme.Forecast || _weatherService.DebugWeather != ForecastDebugWeather.Real)
+            return;
+
+        await EnableForecastWeatherAsync();
+    }
+
+    private async void ChangeForecastDebugWeather(ForecastDebugWeather weather)
+    {
+        _weatherService.SetDebugWeather(weather);
+        _trayIconManager.SetActiveForecastDebugWeather(weather);
+
+        if (weather == ForecastDebugWeather.Real)
+            await EnableForecastWeatherAsync();
+    }
+
+    private async Task EnableForecastWeatherAsync()
+    {
+        var firstActivation = !_weatherService.HasCachedLocation;
+        if (!_weatherTransferAuthorizedForSession)
+        {
+            var confirmation = new ConfirmationWindow(
+                Strings.ForecastLocationTitle,
+                Strings.ForecastLocationConsent);
+            var owner = _ladaWindows.FirstOrDefault(window => window.IsVisible);
+            if (owner is not null)
+                confirmation.Owner = owner;
+            confirmation.ShowDialog();
+            if (!confirmation.Confirmed)
+                return;
+
+            _weatherTransferAuthorizedForSession = true;
+        }
+
+        // Re-read the position on every explicit activation. Once Windows
+        // has granted access this is silent, and it lets Forecast follow a
+        // laptop that has moved since the last session.
+        var result = await _weatherService.ActivateAsync(requestLocation: true);
+        if (result == WeatherActivationResult.Updated)
+        {
+            if (firstActivation)
+                _trayIconManager.ShowBalloon("Forecast", Strings.ForecastWeatherReady);
+        }
+        else if (result == WeatherActivationResult.PermissionDenied)
+        {
+            _trayIconManager.ShowBalloon("Forecast", Strings.ForecastLocationDenied);
+        }
+        else
+        {
+            _trayIconManager.ShowBalloon("Forecast", Strings.ForecastWeatherUnavailable);
+        }
     }
 
     private void ChangeLanguage(AppLanguage language)
@@ -173,6 +263,12 @@ public partial class App : Application
     private void ChangeHudGlow(bool enabled)
     {
         _hudGlowManager.Apply(enabled);
+        PersistLayout();
+    }
+
+    private void ChangeBackgroundBlur(bool enabled)
+    {
+        _backgroundBlurManager.Apply(enabled);
         PersistLayout();
     }
 
@@ -292,7 +388,7 @@ public partial class App : Application
 
     private void CreateLadaWindow(LadaLayout layout)
     {
-        var window = new LadaWindow(layout, _themeManager, _localizationManager, _hoverFadeManager, _magnetismManager, _perspectiveTiltManager, _hudGlowManager, _widgetChromeManager, _customColorPaletteService, _hardwareMonitorService, _gmailAuthService, _gmailPollingService, () => _ladaWindows);
+        var window = new LadaWindow(layout, _themeManager, _localizationManager, _hoverFadeManager, _magnetismManager, _perspectiveTiltManager, _hudGlowManager, _backgroundBlurManager, _appearanceCustomizationManager, _widgetChromeManager, _customColorPaletteService, _andersonColorSyncManager, _hardwareMonitorService, _gmailAuthService, _gmailPollingService, _weatherService, () => _ladaWindows);
         window.LayoutChanged += (_, _) => PersistLayout();
         window.ItemLaunchFailed += message => _trayIconManager.ShowBalloon("Lada", message);
         window.DrawerOperationFailed += message => _trayIconManager.ShowBalloon("Lada", message);
@@ -304,6 +400,7 @@ public partial class App : Application
         _ladaWindows.Add(window);
         window.Show();
         window.EnsureVisible(_ladaWindows.Count);
+        window.EnsureBackgroundBlurAfterShow();
 
         if (_overlayActive)
         {
@@ -333,6 +430,25 @@ public partial class App : Application
 
         var iconColor = ColorPalette.ForTheme(_themeManager.Current)[0];
         CreateLadaWindow(new LadaLayout { Title = "Lada", X = x, Y = y, IconColor = iconColor });
+        PersistLayout();
+    }
+
+    private void CreateNewGmailLada()
+    {
+        var offset = _ladaWindows.Count * 24;
+        var iconColor = ColorPalette.ForTheme(_themeManager.Current)[0];
+        CreateLadaWindow(new LadaLayout
+        {
+            Title = "Gmail",
+            X = 100 + offset,
+            Y = 100 + offset,
+            IconId = "case",
+            IconColor = iconColor,
+            Tabs = new List<LadaTab>
+            {
+                new() { Title = "Gmail", ContentMode = TabContentMode.Mail }
+            }
+        });
         PersistLayout();
     }
 
@@ -379,6 +495,11 @@ public partial class App : Application
             MagnetismEnabled = _magnetismManager.Enabled,
             PerspectiveTiltEnabled = _perspectiveTiltManager.Enabled,
             HudGlowEnabled = _hudGlowManager.Enabled,
+            BackgroundBlurEnabled = _backgroundBlurManager.Enabled,
+            AppearanceBrightnessPercent = _appearanceCustomizationManager.BrightnessPercent,
+            AppearanceBackgroundColor = _appearanceCustomizationManager.BackgroundColorHex,
+            AndersonColorsSynchronized = _andersonColorSyncManager.Enabled,
+            AndersonSynchronizedColor = _andersonColorSyncManager.Color,
             WidgetChromeVisible = _widgetChromeManager.Enabled,
             CustomColors = _customColorPaletteService.Colors.ToList(),
             Ladas = _ladaWindows.Select(w => w.ToLayout()).ToList()
@@ -396,6 +517,11 @@ public partial class App : Application
             MagnetismEnabled = _magnetismManager.Enabled,
             PerspectiveTiltEnabled = _perspectiveTiltManager.Enabled,
             HudGlowEnabled = _hudGlowManager.Enabled,
+            BackgroundBlurEnabled = _backgroundBlurManager.Enabled,
+            AppearanceBrightnessPercent = _appearanceCustomizationManager.BrightnessPercent,
+            AppearanceBackgroundColor = _appearanceCustomizationManager.BackgroundColorHex,
+            AndersonColorsSynchronized = _andersonColorSyncManager.Enabled,
+            AndersonSynchronizedColor = _andersonColorSyncManager.Color,
             WidgetChromeVisible = _widgetChromeManager.Enabled,
             CustomColors = _customColorPaletteService.Colors.ToList(),
             Ladas = _ladaWindows.Select(w => w.ToLayout()).ToList()
@@ -410,6 +536,7 @@ public partial class App : Application
         _desktopAutoOrganizeWatcher.Dispose();
         _hardwareMonitorService.Dispose();
         _gmailPollingService.Dispose();
+        _weatherService.Dispose();
 
         base.OnExit(e);
     }

@@ -431,6 +431,30 @@ public class LadaLayoutCollectionSerializationTests
     }
 
     [Fact]
+    public void RoundTrip_PreservesTheme_Forecast()
+    {
+        var original = new LadaLayoutCollection { Theme = AppTheme.Forecast };
+
+        var json = JsonSerializer.Serialize(original, LadaJson.Options);
+        var restored = JsonSerializer.Deserialize<LadaLayoutCollection>(json, LadaJson.Options);
+
+        Assert.Contains("\"forecast\"", json);
+        Assert.Equal(AppTheme.Forecast, restored!.Theme);
+    }
+
+    [Fact]
+    public void RoundTrip_PreservesTheme_Howard()
+    {
+        var original = new LadaLayoutCollection { Theme = AppTheme.Howard };
+
+        var json = JsonSerializer.Serialize(original, LadaJson.Options);
+        var restored = JsonSerializer.Deserialize<LadaLayoutCollection>(json, LadaJson.Options);
+
+        Assert.Contains("\"howard\"", json);
+        Assert.Equal(AppTheme.Howard, restored!.Theme);
+    }
+
+    [Fact]
     public void Deserialize_LegacyJsonWithoutThemeField_DefaultsToMidnight()
     {
         const string legacyJson = """
@@ -684,7 +708,7 @@ public class LadaLayoutCollectionSerializationTests
     }
 
     [Fact]
-    public void Deserialize_LegacyJsonWithoutWidgetChromeVisibleField_DefaultsToTrue()
+    public void Deserialize_LegacyJsonWithoutWidgetChromeVisibleField_DefaultsToFalse()
     {
         const string legacyJson = """
             {
@@ -694,6 +718,83 @@ public class LadaLayoutCollectionSerializationTests
 
         var restored = JsonSerializer.Deserialize<LadaLayoutCollection>(legacyJson, LadaJson.Options);
 
-        Assert.True(restored!.WidgetChromeVisible);
+        Assert.False(restored!.WidgetChromeVisible);
+    }
+
+    [Fact]
+    public void RoundTrip_PreservesBackgroundBlurChoice()
+    {
+        var original = new LadaLayoutCollection { BackgroundBlurEnabled = false };
+
+        var json = JsonSerializer.Serialize(original, LadaJson.Options);
+        var restored = JsonSerializer.Deserialize<LadaLayoutCollection>(json, LadaJson.Options);
+
+        Assert.False(restored!.BackgroundBlurEnabled);
+    }
+
+    [Fact]
+    public void Deserialize_LegacyJsonWithoutBackgroundBlurField_DefaultsToEnabled()
+    {
+        const string legacyJson = """
+            {
+              "ladas": []
+            }
+            """;
+
+        var restored = JsonSerializer.Deserialize<LadaLayoutCollection>(legacyJson, LadaJson.Options);
+
+        Assert.True(restored!.BackgroundBlurEnabled);
+    }
+
+    [Fact]
+    public void RoundTrip_PreservesAppearanceBrightness()
+    {
+        var original = new LadaLayoutCollection { AppearanceBrightnessPercent = 137 };
+
+        var json = JsonSerializer.Serialize(original, LadaJson.Options);
+        var restored = JsonSerializer.Deserialize<LadaLayoutCollection>(json, LadaJson.Options);
+
+        Assert.Equal(137, restored!.AppearanceBrightnessPercent);
+    }
+
+    [Fact]
+    public void Deserialize_LegacyJsonWithoutAppearanceBrightness_DefaultsToOneHundred()
+    {
+        const string legacyJson = """
+            {
+              "ladas": []
+            }
+            """;
+
+        var restored = JsonSerializer.Deserialize<LadaLayoutCollection>(legacyJson, LadaJson.Options);
+
+        Assert.Equal(100, restored!.AppearanceBrightnessPercent);
+    }
+
+    [Fact]
+    public void RoundTrip_PreservesAppearanceBackgroundColor()
+    {
+        var original = new LadaLayoutCollection { AppearanceBackgroundColor = "#123456" };
+
+        var json = JsonSerializer.Serialize(original, LadaJson.Options);
+        var restored = JsonSerializer.Deserialize<LadaLayoutCollection>(json, LadaJson.Options);
+
+        Assert.Equal("#123456", restored!.AppearanceBackgroundColor);
+    }
+
+    [Fact]
+    public void RoundTrip_PreservesAndersonColorSynchronization()
+    {
+        var original = new LadaLayoutCollection
+        {
+            AndersonColorsSynchronized = false,
+            AndersonSynchronizedColor = "#D91E18"
+        };
+
+        var json = JsonSerializer.Serialize(original, LadaJson.Options);
+        var restored = JsonSerializer.Deserialize<LadaLayoutCollection>(json, LadaJson.Options);
+
+        Assert.False(restored!.AndersonColorsSynchronized);
+        Assert.Equal("#D91E18", restored.AndersonSynchronizedColor);
     }
 }

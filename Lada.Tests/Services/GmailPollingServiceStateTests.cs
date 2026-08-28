@@ -17,6 +17,8 @@ public class GmailPollingServiceStateTests
 
         Assert.Single(service.LastKnownMails);
         Assert.Equal("Hi", service.LastKnownMails[0].Subject);
+        Assert.True(service.HasCompletedInitialFetch);
+        Assert.False(service.LastUpdateFailed);
     }
 
     [Fact]
@@ -45,7 +47,7 @@ public class GmailPollingServiceStateTests
     }
 
     [Fact]
-    public void ApplyFetchResult_Failure_DoesNotRaiseMailsUpdated()
+    public void ApplyFetchResult_Failure_RaisesMailsUpdatedForErrorState()
     {
         var service = new GmailPollingService();
         var raised = false;
@@ -53,6 +55,8 @@ public class GmailPollingServiceStateTests
 
         service.ApplyFetchResult(success: false, new List<MailSummary>());
 
-        Assert.False(raised);
+        Assert.True(raised);
+        Assert.True(service.HasCompletedInitialFetch);
+        Assert.True(service.LastUpdateFailed);
     }
 }

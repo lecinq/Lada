@@ -2,6 +2,7 @@ using System;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using Lada.Models;
 using Lada.Resources;
 using Lada.Services;
 
@@ -10,7 +11,21 @@ namespace Lada.Windows;
 public partial class LadaWindow
 {
     private bool _isSyncingColorPicker;
+    private bool _isPublishingSynchronizedColor;
     private CustomColorPaletteService? _customColorPaletteService;
+    private AndersonColorSyncManager? _andersonColorSyncManager;
+
+    private void InitializeAndersonColorSync(AndersonColorSyncManager manager)
+    {
+        _andersonColorSyncManager = manager;
+        manager.ColorChanged += OnSynchronizedAndersonColorChanged;
+        manager.Changed += UpdateAndersonColorSyncButton;
+        Closed += (_, _) =>
+        {
+            manager.ColorChanged -= OnSynchronizedAndersonColorChanged;
+            manager.Changed -= UpdateAndersonColorSyncButton;
+        };
+    }
 
     // Wired once (these are static XAML elements, not rebuilt per popup
     // open like the preset swatches in PopulatePicker).
@@ -18,6 +33,22 @@ public partial class LadaWindow
     {
         ColorHexBox.ToolTip = Strings.CustomColorHexTooltip;
         SaveColorButton.ToolTip = Strings.SaveColorTooltip;
+        ColorSyncButton.MouseLeftButtonDown += (_, e) =>
+        {
+            if (_themeManager?.Current == AppTheme.Anderson)
+            {
+                _andersonColorSyncManager?.Toggle(_iconColor);
+            }
+            else if (_getAllLadaWindows is not null)
+            {
+                // Outside Anderson this remains the original one-shot
+                // action: copy the current lada's color to every active one.
+                foreach (var lada in _getAllLadaWindows())
+                    lada.ApplyIconColorCore(_iconColor);
+            }
+            e.Handled = true;
+        };
+        UpdateAndersonColorSyncButton();
 
         HueSlider.ValueChanged += (_, _) => ApplyColorFromSliders();
         SaturationSlider.ValueChanged += (_, _) => ApplyColorFromSliders();
@@ -160,11 +191,67 @@ public partial class LadaWindow
     // actively interacting with.
     private void ApplyIconColor(string hex)
     {
+        if (_themeManager?.Current == AppTheme.Anderson && _andersonColorSyncManager?.Enabled == true)
+        {
+            // Hue 360° is intentionally the right-hand endpoint even though
+            // it represents the same RGB red as 0°. The manager publishes
+            // synchronously to every lada, including this source window. If
+            // the source then round-trips that RGB value back through HSL,
+            // 360° is canonically decoded as 0° and the thumb appears to jump
+            // from the far right to the far left. Mark the publisher so only
+            // the other windows refresh their picker coordinates.
+            _isPublishingSynchronizedColor = true;
+            try
+            {
+                _andersonColorSyncManager.SetColor(hex);
+            }
+            finally
+            {
+                _isPublishingSynchronizedColor = false;
+            }
+            return;
+        }
+
+        ApplyIconColorCore(hex);
+    }
+
+    private void ApplyIconColorCore(string hex)
+    {
         _iconColor = hex;
         UpdateIconButtonVisual();
         ApplyThemeColors();
         RefreshDynamicContent();
         LayoutChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnSynchronizedAndersonColorChanged(string hex)
+    {
+        if (_themeManager?.Current != AppTheme.Anderson)
+            return;
+
+        ApplyIconColorCore(hex);
+        if (PickerPopup.IsOpen && !_isPublishingSynchronizedColor)
+            RefreshCustomColorPicker();
+    }
+
+    private void UpdateAndersonColorSyncButton()
+    {
+        if (ColorSyncButton is null)
+            return;
+
+        ColorSyncButton.Visibility = System.Windows.Visibility.Visible;
+
+        var isAnderson = _themeManager?.Current == AppTheme.Anderson;
+        var synchronized = _andersonColorSyncManager?.Enabled != false;
+        var icon = !isAnderson || synchronized
+            ? IconLibrary.ShareColorAction
+            : IconLibrary.IndependentColorsAction;
+        ColorSyncIconPath.Data = Geometry.Parse(icon.PathData);
+        ColorSyncButton.ToolTip = !isAnderson
+            ? Strings.ShareColorWithAllLadasTooltip
+            : synchronized
+                ? Strings.AndersonColorsSynchronizedTooltip
+                : Strings.AndersonColorsIndependentTooltip;
     }
 
     // Saturation's own gradient (grey -> current hue at full saturation)

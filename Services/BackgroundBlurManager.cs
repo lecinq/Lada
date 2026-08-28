@@ -2,9 +2,9 @@ using System;
 
 namespace Lada.Services;
 
-public sealed class WidgetChromeManager
+public sealed class BackgroundBlurManager
 {
-    public bool Enabled { get; private set; } = false;
+    public bool Enabled { get; private set; }
 
     public event Action? Changed;
 

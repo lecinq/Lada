@@ -57,7 +57,6 @@
                             Cursor="Hand"
                             MouseLeftButtonDown="ConfirmButton_MouseLeftButtonDown">
                         <TextBlock x:Name="ConfirmButtonText"
-                                   Foreground="White"
                                    FontFamily="{DynamicResource LadaFontFamily}" FontSize="12" FontWeight="SemiBold"/>
                     </Border>
                 </StackPanel>

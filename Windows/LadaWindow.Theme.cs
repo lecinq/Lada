@@ -1,7 +1,9 @@
+using System;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using Lada.Models;
+using Lada.Resources;
 using Lada.Services;
 
 namespace Lada.Windows;
@@ -9,7 +11,23 @@ namespace Lada.Windows;
 public partial class LadaWindow
 {
     private ThemeManager? _themeManager;
+    private WeatherService? _weatherService;
+    private Action? _weatherUpdatedHandler;
     private Path? _resizeChevron;
+
+    private void InitializeForecastWeather(WeatherService weatherService)
+    {
+        _weatherService = weatherService;
+        ForecastRainLayer.SetWeather(weatherService.Current);
+        _weatherUpdatedHandler = () => Dispatcher.BeginInvoke(() =>
+            ForecastRainLayer.SetWeather(_weatherService?.Current));
+        weatherService.Updated += _weatherUpdatedHandler;
+        Closed += (_, _) =>
+        {
+            if (_weatherService is not null && _weatherUpdatedHandler is not null)
+                _weatherService.Updated -= _weatherUpdatedHandler;
+        };
+    }
 
     private void InitializeTheme(ThemeManager themeManager)
     {
@@ -25,10 +43,43 @@ public partial class LadaWindow
 
     private void OnThemeChanged()
     {
-        ApplyThemeColors();
-        UpdateIconButtonVisual();
-        UpdateMainBorderClip();
-        RefreshDynamicContent();
+        if (_themeManager?.Current == AppTheme.Anderson && _andersonColorSyncManager?.Enabled == true)
+        {
+            _iconColor = _andersonColorSyncManager.Color;
+        }
+
+        // Viewport2DVisual3D hosts its Visual outside the normal 2D resource
+        // inheritance path. While Perspective Tilt is active, a swapped
+        // application ResourceDictionary therefore does not invalidate all
+        // DynamicResource expressions inside TiltRootContent: the manager's
+        // Current theme changes, but parts of the card can retain the old
+        // background/font/geometry. Briefly reattaching the complete panel
+        // to RootHost makes WPF resolve every resource against the new theme
+        // in one synchronous layout tree, then it can safely return to the
+        // same 3D host before the next rendered frame.
+        var restorePerspectiveHosting = _tiltHostedIn3D;
+        if (restorePerspectiveHosting)
+        {
+            SetPerspectiveTiltHosting(false);
+        }
+
+        try
+        {
+            ApplyThemeColors();
+            UpdateAppearanceCustomization();
+            UpdateIconButtonVisual();
+            UpdateMainBorderClip();
+            RefreshDynamicContent();
+        }
+        finally
+        {
+            if (restorePerspectiveHosting)
+            {
+                SetPerspectiveTiltHosting(true);
+                UpdateTiltGeometry();
+                UpdatePerspectiveTilt();
+            }
+        }
     }
 
     // Item icons, tab headers, and selection tint are all built in code
@@ -66,10 +117,44 @@ public partial class LadaWindow
     // per-instance handling rather than a DynamicResource lookup.
     private void ApplyThemeColors()
     {
+        // Anderson's whole chrome is driven by the color of this specific
+        // lada. Keep those overrides at Window scope so detached popups such
+        // as ContextMenu can resolve the same color through their placement
+        // target as the in-window picker does. Other themes must explicitly
+        // release the overrides when the user switches away from Anderson.
+        if (_themeManager?.Current == AppTheme.Anderson)
+        {
+            var activeColor = (Color)ColorConverter.ConvertFromString(_iconColor)!;
+            var activeBrush = new SolidColorBrush(activeColor);
+            Resources["TitleTextBrush"] = activeBrush;
+            Resources["SecondaryTextBrush"] = activeBrush;
+            Resources["LadaBorderBrush"] = activeBrush;
+            Resources["ColorPickerThumbBackgroundBrush"] = Brushes.Black;
+            ColorHexBox.Background = Brushes.Black;
+            SaveColorButton.Background = Brushes.Black;
+        }
+        else
+        {
+            Resources.Remove("TitleTextBrush");
+            Resources.Remove("SecondaryTextBrush");
+            Resources.Remove("LadaBorderBrush");
+            Resources["ColorPickerThumbBackgroundBrush"] =
+                System.Windows.Application.Current.TryFindResource("TitleTextBrush") as Brush ?? Brushes.White;
+            ColorHexBox.Background = Brushes.Transparent;
+            SaveColorButton.Background = Brushes.Transparent;
+        }
+
+        ForecastRainLayer.Visibility = _themeManager?.Current == AppTheme.Forecast
+            ? System.Windows.Visibility.Visible
+            : System.Windows.Visibility.Collapsed;
+        HowardHudLayer.Visibility = _themeManager?.Current == AppTheme.Howard
+            ? System.Windows.Visibility.Visible
+            : System.Windows.Visibility.Collapsed;
+
         if (_themeManager?.Current == AppTheme.Modernism)
         {
             var accent = new SolidColorBrush((Color)ColorConverter.ConvertFromString(_iconColor)!);
-            var readable = ContrastBrush(_iconColor);
+            var readable = ColorContrast.ForegroundBrush(_iconColor);
             TitleBar.Background = accent;
             TitleTextBlock.Foreground = readable;
             TitleTextBox.Foreground = readable;
@@ -105,6 +190,24 @@ public partial class LadaWindow
                 _resizeChevron.Stroke = accent;
             }
         }
+        else if (_themeManager?.Current == AppTheme.Howard)
+        {
+            var accentColor = (Color)ColorConverter.ConvertFromString(_iconColor)!;
+            var accent = new SolidColorBrush(accentColor);
+            HowardHudLayer.AccentColor = accentColor;
+            TitleBar.Background = Brushes.Transparent;
+            MainBorder.BorderBrush = accent;
+            TitleTabSeparator.Background = accent;
+            TitleTextBlock.SetResourceReference(TextBlock.ForegroundProperty, "TitleTextBrush");
+            TitleTextBox.SetResourceReference(TextBox.ForegroundProperty, "TitleTextBrush");
+            IconPickerBorder.BorderBrush = accent;
+            IconPickerDivider.Background = accent;
+            CustomColorDivider.Background = accent;
+            if (_resizeChevron is not null)
+            {
+                _resizeChevron.Stroke = accent;
+            }
+        }
         else
         {
             TitleBar.Background = Brushes.Transparent;
@@ -119,7 +222,12 @@ public partial class LadaWindow
         }
 
         ApplyMenuAccentColors();
+        UpdateAndersonColorSyncButton();
         UpdateHudGlow();
+        // A theme/accent refresh changes only the tint. Reordering native
+        // windows here would put the color picker's Popup HWND behind the
+        // Lada while a slider is being dragged.
+        UpdateBackgroundBlur(preserveZOrder: true);
     }
 
     // Every ContextMenu in this window (base sort/new-widget menu, tab
@@ -138,31 +246,20 @@ public partial class LadaWindow
         var accent = (Color)ColorConverter.ConvertFromString(_iconColor)!;
         Resources["AccentBrush"] = new SolidColorBrush(accent);
         Resources["SelectedBackgroundBrush"] = new SolidColorBrush(accent) { Opacity = 0.3 };
+        Resources["SelectionMarqueeFillBrush"] = new SolidColorBrush(accent) { Opacity = 0.18 };
     }
 
     // Item labels use IconLabelStyle's DynamicResource-bound SecondaryTextBrush
-    // in Midnight/Modernism (unchanged, theme-wide, not per-lada). In
-    // Anderson they follow this specific lada's own accent instead, same as
-    // the border/title/icon glyph -- called from RenderItem (DragDrop.cs)
+    // in Midnight/Modernism/Forecast. In Anderson and Howard they follow
+    // this specific lada's own accent instead, same as the surrounding HUD
+    // chrome -- called from RenderItem (DragDrop.cs)
     // and BuildDrawerChildVisual (Drawer.cs) to override the Style's default
     // per label, since a Style is shared app-wide and can't vary per lada by
-    // itself. Returns null outside Anderson so callers can leave the Style's
+    // itself. Returns null outside those themes so callers can leave the Style's
     // own DynamicResource value in place instead of resolving it themselves.
     private Brush? ItemLabelAccentOverride() =>
-        _themeManager?.Current == AppTheme.Anderson
+        _themeManager?.Current is AppTheme.Anderson or AppTheme.Howard
             ? new SolidColorBrush((Color)ColorConverter.ConvertFromString(_iconColor)!)
             : null;
 
-    // A title bar's background is an arbitrary per-lada color in Modernism
-    // (whatever accent the user picked), so fixed black or white text/icon
-    // would go illegible against roughly half the palette. Picking
-    // black-or-white from the color's own perceptual luminance keeps title
-    // text and the title icon glyph readable against any accent, including
-    // ones added to the palette later.
-    private static Brush ContrastBrush(string hex)
-    {
-        var color = (Color)ColorConverter.ConvertFromString(hex)!;
-        var luminance = (0.299 * color.R + 0.587 * color.G + 0.114 * color.B) / 255.0;
-        return luminance > 0.5 ? Brushes.Black : Brushes.White;
-    }
 }

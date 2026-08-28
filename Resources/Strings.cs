@@ -22,10 +22,22 @@ public static class Strings
     public static string MagnetismMenuItem => Pick("Magnétisme", "Magnetism");
     public static string PerspectiveTiltMenuItem => Pick("Perspective 3D", "3D perspective");
     public static string HudGlowMenuItem => Pick("Lueur HUD", "HUD glow");
+    public static string BackgroundBlurMenuItem => Pick("Flou d’arrière-plan", "Background blur");
     public static string NewWidgetTrayMenuItem => Pick("Nouveau widget", "New widget");
     public static string WidgetChromeMenuItem => Pick("Titre et icône des widgets", "Widget title and icon");
     public static string ArrangeLadasMenuItem => Pick("Ranger les ladas", "Arrange ladas");
     public static string AboutMenuItem => Pick("À propos", "About");
+    public static string CustomizeMenuItem => Pick("Personnaliser", "Customize");
+    public static string CustomizeBrightness => Pick("Luminosité", "Brightness");
+    public static string CustomizeBrightnessDescription => Pick(
+        "Modifie en temps réel la luminosité des surfaces de tous les Ladas.",
+        "Adjusts the surface brightness of every Lada in real time.");
+    public static string CustomizeBackgroundColor => Pick("Couleur de fond", "Background color");
+    public static string CustomizeBackgroundColorDescription => Pick(
+        "Remplace la couleur de fond tout en conservant la transparence du thème.",
+        "Replaces the background color while preserving the theme transparency.");
+    public static string CustomizeResetBackgroundColor => Pick("Réinitialiser", "Reset");
+    public static string NewGmailLadaMenuItem => Pick("Nouveau Lada Gmail", "New Gmail Lada");
     public static string Quit => Pick("Quitter", "Quit");
 
     public static string AboutMessage => Pick(
@@ -33,6 +45,7 @@ public static class Strings
         "Lada, a personal Windows desktop organizer with semi-transparent containers for your shortcuts. Made by Quentin Ecrepont.");
 
     public static string AboutOpenSource => Pick("Gratuit et open source :", "Free and open source:");
+    public static string WeatherDataAttribution => Pick("Données météo par Open-Meteo", "Weather data by Open-Meteo");
 
     // Lada empty-space context menu
     public static string SortByType => Pick("Trier par type", "Sort by type");
@@ -79,6 +92,35 @@ public static class Strings
     // Themed confirmation dialog (ConfirmationWindow)
     public static string ConfirmButton => Pick("Confirmer", "Confirm");
     public static string CancelButton => Pick("Annuler", "Cancel");
+
+    // Forecast weather
+    public static string ForecastLocationTitle => Pick("Météo locale Forecast", "Forecast local weather");
+    public static string ForecastLocationConsent => Pick(
+        "Autoriser Forecast à adapter son apparence à la météo locale ? Windows demandera l’accès à votre position. Seules des coordonnées arrondies (environ à l’échelle de la ville) seront conservées sur ce PC et envoyées à Open-Meteo pour obtenir la météo. Vous pourrez refuser : le thème conservera alors son animation décorative.",
+        "Allow Forecast to adapt its appearance to local weather? Windows will request access to your location. Only rounded coordinates (roughly city-level) will be kept on this PC and sent to Open-Meteo to retrieve weather data. You can decline: the theme will keep its decorative animation.");
+    public static string ForecastWeatherReady => Pick(
+        "Forecast est maintenant synchronisé avec la météo locale.",
+        "Forecast is now synchronized with local weather.");
+    public static string ForecastLocationDenied => Pick(
+        "La localisation n’a pas été autorisée. Forecast conserve son animation décorative.",
+        "Location access wasn't allowed. Forecast will keep its decorative animation.");
+    public static string ForecastWeatherUnavailable => Pick(
+        "La météo locale est momentanément indisponible. Forecast utilise la dernière météo connue ou son animation décorative.",
+        "Local weather is temporarily unavailable. Forecast is using the last known weather or its decorative animation.");
+    public static string ForecastDebugMenu => Pick("Debug Forecast", "Forecast debug");
+    public static string ForecastDebugWeatherLabel(ForecastDebugWeather weather) => weather switch
+    {
+        ForecastDebugWeather.Real => Pick("Météo réelle", "Live weather"),
+        ForecastDebugWeather.ClearDay => Pick("Dégagé — jour", "Clear — day"),
+        ForecastDebugWeather.ClearNight => Pick("Dégagé — nuit", "Clear — night"),
+        ForecastDebugWeather.Cloudy => Pick("Nuageux", "Cloudy"),
+        ForecastDebugWeather.Fog => Pick("Brouillard", "Fog"),
+        ForecastDebugWeather.LightRain => Pick("Pluie légère", "Light rain"),
+        ForecastDebugWeather.HeavyRain => Pick("Forte pluie", "Heavy rain"),
+        ForecastDebugWeather.Snow => Pick("Neige", "Snow"),
+        ForecastDebugWeather.Storm => Pick("Orage", "Storm"),
+        _ => throw new ArgumentOutOfRangeException(nameof(weather))
+    };
 
     // Tabs
     public static string RenameTab => Pick("Renommer", "Rename");
@@ -156,6 +198,16 @@ public static class Strings
     public static string ChooseIconTooltip => Pick("Choisir une icône", "Choose an icon");
     public static string CustomColorHexTooltip => Pick("Code hex (#RRGGBB)", "Hex code (#RRGGBB)");
     public static string SaveColorTooltip => Pick("Enregistrer cette couleur", "Save this color");
+    public static string DeleteCustomColor => Pick("Supprimer", "Delete");
+    public static string ShareColorWithAllLadasTooltip => Pick(
+        "Appliquer cette couleur à tous les Ladas",
+        "Apply this color to every Lada");
+    public static string AndersonColorsSynchronizedTooltip => Pick(
+        "Couleurs Anderson synchronisées — cliquer pour les rendre indépendantes",
+        "Anderson colors synchronized — click to make them independent");
+    public static string AndersonColorsIndependentTooltip => Pick(
+        "Couleurs Anderson indépendantes — cliquer pour les synchroniser",
+        "Anderson colors independent — click to synchronize them");
 
     // List view
     public static string ViewModeSubmenu => Pick("Affichage", "View");
@@ -178,9 +230,13 @@ public static class Strings
     public static string MailReauthRequired => Pick("Reconnexion nécessaire", "Reconnection needed");
     public static string MailReauthButton => Pick("Se reconnecter", "Reconnect");
     public static string MailLastUpdateFailed => Pick("Dernière mise à jour : échec", "Last update: failed");
+    public static string MailNoMessages => Pick("Aucun e-mail dans la boîte de réception", "No mail in the inbox");
     public static string MailNoClientSecret => Pick(
-        "Aucun fichier google_client_secret.json trouvé — voir la documentation.",
-        "No google_client_secret.json file found — see the docs.");
+        "Configuration Gmail requise : placez google_client_secret.json dans %AppData%\\Lada. Ce fichier provient d’un client OAuth « Application de bureau » dont l’API Gmail est activée.",
+        "Gmail setup required: place google_client_secret.json in %AppData%\\Lada. This file comes from a Desktop OAuth client with the Gmail API enabled.");
+    public static string OpenGmailConfigurationFolder => Pick(
+        "Ouvrir le dossier de configuration",
+        "Open configuration folder");
 
     // Global hotkeys
     public static string OverlayHotkeyDescription => Pick("Ctrl+Alt+O (Overlay)", "Ctrl+Alt+O (Overlay)");

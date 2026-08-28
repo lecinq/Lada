@@ -10,6 +10,8 @@ internal static class NativeMethods
     internal const int WS_EX_TOOLWINDOW = 0x00000080;
     internal const int WS_EX_APPWINDOW = 0x00040000;
     internal const int WS_EX_NOACTIVATE = 0x08000000;
+    internal const int WS_EX_TRANSPARENT = 0x00000020;
+    internal const int WS_POPUP = unchecked((int)0x80000000);
 
     internal static readonly IntPtr HWND_BOTTOM = new(1);
     internal static readonly IntPtr HWND_TOPMOST = new(-1);
@@ -69,6 +71,26 @@ internal static class NativeMethods
     internal static extern bool DestroyIcon(IntPtr hIcon);
 
     internal const uint SWP_NOZORDER = 0x0004;
+    internal const int SW_HIDE = 0;
+    internal const int SW_SHOWNOACTIVATE = 4;
+
+    internal const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+    internal const int DWMWA_USE_HOSTBACKDROPBRUSH = 17;
+    internal const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+    internal const int DWMWA_BORDER_COLOR = 34;
+    internal const int DWMWCP_ROUND = 2;
+    internal const int DWM_COLOR_NONE = unchecked((int)0xFFFFFFFE);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("dwmapi.dll", PreserveSig = true)]
+    internal static extern int DwmSetWindowAttribute(
+        IntPtr hWnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+
+    [DllImport("dwmapi.dll", PreserveSig = true)]
+    internal static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref MARGINS pMarInset);
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -160,6 +182,15 @@ internal struct RECT
     public int Left;
     public int Top;
     public int Right;
+    public int Bottom;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct MARGINS
+{
+    public int Left;
+    public int Right;
+    public int Top;
     public int Bottom;
 }
 

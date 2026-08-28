@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 using Lada.Resources;
 
 namespace Lada.Windows;
@@ -18,6 +19,21 @@ public partial class ConfirmationWindow : Window
         MessageText.Text = message;
         ConfirmButtonText.Text = Strings.ConfirmButton;
         CancelButtonText.Text = Strings.CancelButton;
+        Loaded += (_, _) => ApplyConfirmButtonContrast();
+    }
+
+    private void ApplyConfirmButtonContrast()
+    {
+        // ConfirmationWindow lives in its own resource tree, so explicitly
+        // resolve the per-lada AccentBrush from its owner (especially
+        // important for Anderson's synchronized/custom colors).
+        if (Owner is FrameworkElement owner && owner.TryFindResource("AccentBrush") is Brush ownerAccent)
+            ConfirmButton.Background = ownerAccent;
+
+        if (ConfirmButton.Background is SolidColorBrush background)
+            ConfirmButtonText.Foreground = ColorContrast.ForegroundBrush(background.Color);
+        else
+            ConfirmButtonText.Foreground = Brushes.White;
     }
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)

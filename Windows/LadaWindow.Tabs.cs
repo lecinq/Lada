@@ -50,11 +50,11 @@ public partial class LadaWindow
     // can't pick up a per-lada accent via a named-element override the way
     // MainBorder/TitleTextBlock do in ApplyThemeColors (LadaWindow.Theme.cs)
     // -- it has to compute its own brush here instead, each time it's
-    // rebuilt. In Anderson it follows the lada's own color like the rest of
-    // the chrome; in Midnight/Modernism it keeps the fixed muted color it
+    // rebuilt. In Anderson/Howard it follows the lada's own color like the
+    // rest of the chrome; in Midnight/Modernism/Forecast it keeps the fixed muted color it
     // always had.
     private Brush TabAddButtonBrush() =>
-        _themeManager?.Current == AppTheme.Anderson
+        _themeManager?.Current is AppTheme.Anderson or AppTheme.Howard
             ? new SolidColorBrush((Color)ColorConverter.ConvertFromString(_iconColor)!)
             : (Brush)FindResource("SecondaryTextBrush");
 
@@ -62,13 +62,22 @@ public partial class LadaWindow
     {
         var isActive = index == _activeTabIndex;
         var accent = ItemLabelAccentOverride();
+        var isAnderson = _themeManager?.Current == AppTheme.Anderson;
+        var andersonColor = isAnderson
+            ? (Color)ColorConverter.ConvertFromString(_iconColor)!
+            : default;
+        var andersonAccent = isAnderson
+            ? new SolidColorBrush(andersonColor)
+            : null;
 
         var border = new Border
         {
             Padding = new Thickness(8, 2, 8, 2),
             Margin = new Thickness(0, 0, 4, 0),
-            CornerRadius = new CornerRadius(4),
-            Background = isActive ? WidgetTrackBrush(accent) : Brushes.Transparent,
+            CornerRadius = isAnderson ? new CornerRadius(0) : new CornerRadius(4),
+            Background = isActive
+                ? isAnderson ? andersonAccent : WidgetTrackBrush(accent)
+                : Brushes.Transparent,
             Cursor = Cursors.Hand,
             AllowDrop = true
         };
@@ -77,7 +86,9 @@ public partial class LadaWindow
         {
             Text = tab.Title,
             FontSize = 11,
-            Foreground = isActive ? accent ?? (Brush)FindResource("TitleTextBrush") : WidgetDimmedAccentBrush(accent),
+            Foreground = isAnderson
+                ? isActive ? ColorContrast.ForegroundBrush(andersonColor) : andersonAccent
+                : isActive ? accent ?? (Brush)FindResource("TitleTextBrush") : WidgetDimmedAccentBrush(accent),
             VerticalAlignment = VerticalAlignment.Center
         };
 
@@ -89,7 +100,9 @@ public partial class LadaWindow
             FontSize = 11,
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
-            Foreground = (Brush)FindResource("TitleTextBrush")
+            Foreground = isAnderson && isActive
+                ? ColorContrast.ForegroundBrush(andersonColor)
+                : isAnderson ? andersonAccent : (Brush)FindResource("TitleTextBrush")
         };
 
         void Commit()

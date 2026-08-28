@@ -13,6 +13,7 @@ public partial class LadaWindow
     private static readonly TimeSpan BottomReassertInterval = TimeSpan.FromSeconds(4);
     private DispatcherTimer? _bottomReassertTimer;
     private IntPtr _hwnd;
+    private bool _isOverlayMode;
 
     private void InitializeNativeWindowBehavior()
     {
@@ -24,7 +25,7 @@ public partial class LadaWindow
         // to BottomReassertInterval later, visible as a multi-second flash
         // on top at startup). Re-pin once more right after the window is
         // actually shown to close that gap.
-        Loaded += (_, _) => PinToBottom(_hwnd);
+        Loaded += (_, _) => PinToBottom();
         Closed += OnNativeBehaviorClosed;
     }
 
@@ -37,10 +38,10 @@ public partial class LadaWindow
         exStyle &= ~NativeMethods.WS_EX_APPWINDOW;
         NativeMethods.SetWindowLong(_hwnd, NativeMethods.GWL_EXSTYLE, exStyle);
 
-        PinToBottom(_hwnd);
+        PinToBottom();
 
         _bottomReassertTimer = new DispatcherTimer { Interval = BottomReassertInterval };
-        _bottomReassertTimer.Tick += (_, _) => PinToBottom(_hwnd);
+        _bottomReassertTimer.Tick += (_, _) => PinToBottom();
         _bottomReassertTimer.Start();
     }
 
@@ -52,16 +53,31 @@ public partial class LadaWindow
     private void ActivateForTitleEdit()
     {
         if (_hwnd != IntPtr.Zero)
+        {
             NativeMethods.SetForegroundWindow(_hwnd);
+            ReassertBackdropPairing();
+        }
     }
 
-    private static void PinToBottom(IntPtr hwnd)
+    private void PinToBottom()
     {
-        NativeMethods.SetWindowPos(
-            hwnd,
-            NativeMethods.HWND_BOTTOM,
-            0, 0, 0, 0,
-            NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOACTIVATE);
+        PinHwndToBottom(_hwnd);
+        // Keep the companion explicitly adjacent to its card instead of
+        // independently pushing both HWNDs to the bottom, which can separate
+        // them when several ladas reassert their order on the same tick.
+        PlaceBackdropDirectlyBehindLada();
+    }
+
+    private static void PinHwndToBottom(IntPtr hwnd)
+    {
+        if (hwnd != IntPtr.Zero)
+        {
+            NativeMethods.SetWindowPos(
+                hwnd,
+                NativeMethods.HWND_BOTTOM,
+                0, 0, 0, 0,
+                NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOACTIVATE);
+        }
     }
 
     // Overlay temporarily overrides the always-pinned-below-active-windows
@@ -75,19 +91,16 @@ public partial class LadaWindow
             return;
 
         SetOverlayActiveForHoverFade(enabled);
+        _isOverlayMode = enabled;
 
         if (enabled)
         {
             _bottomReassertTimer?.Stop();
-            NativeMethods.SetWindowPos(
-                _hwnd,
-                NativeMethods.HWND_TOPMOST,
-                0, 0, 0, 0,
-                NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOACTIVATE);
+            PlaceBackdropForCurrentZOrder();
         }
         else
         {
-            PinToBottom(_hwnd);
+            PinToBottom();
             _bottomReassertTimer?.Start();
         }
     }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
+using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Gmail.v1;
 using Lada.Models;
 
@@ -26,6 +27,8 @@ public sealed class GmailPollingService : IDisposable
     private CancellationTokenSource? _cts;
 
     public IReadOnlyList<MailSummary> LastKnownMails { get; private set; } = Array.Empty<MailSummary>();
+    public bool HasCompletedInitialFetch { get; private set; }
+    public bool LastUpdateFailed { get; private set; }
 
     public event Action? MailsUpdated;
     public event Action? ReauthRequired;
@@ -62,6 +65,8 @@ public sealed class GmailPollingService : IDisposable
         _cts = null;
     }
 
+    public Task RefreshNowAsync() => PollOnceAsync();
+
     private async Task PollOnceAsync()
     {
         if (_authService is null || _cts is null)
@@ -93,7 +98,17 @@ public sealed class GmailPollingService : IDisposable
         }
         catch (Google.GoogleApiException ex) when (ex.Error?.Code == 401)
         {
-            ReauthRequired?.Invoke();
+            ApplyReauthRequired();
+        }
+        catch (TokenResponseException ex) when (
+            string.Equals(ex.Error?.Error, "invalid_grant", StringComparison.OrdinalIgnoreCase))
+        {
+            // A revoked/expired refresh token fails before the Gmail request is
+            // sent, so it isn't a GoogleApiException/401. Treat it as the same
+            // reconnectable authentication state instead of leaving the UI on
+            // "Loading..." forever.
+            Logger.LogError(nameof(PollOnceAsync), ex);
+            ApplyReauthRequired();
         }
         catch (Exception ex)
         {
@@ -107,11 +122,20 @@ public sealed class GmailPollingService : IDisposable
     // without a live Gmail connection -- see GmailPollingServiceStateTests.
     public void ApplyFetchResult(bool success, IReadOnlyList<MailSummary> mails)
     {
-        if (!success)
-            return;
+        HasCompletedInitialFetch = true;
+        LastUpdateFailed = !success;
 
-        LastKnownMails = mails;
+        if (success)
+            LastKnownMails = mails;
+
         MailsUpdated?.Invoke();
+    }
+
+    private void ApplyReauthRequired()
+    {
+        HasCompletedInitialFetch = true;
+        LastUpdateFailed = false;
+        ReauthRequired?.Invoke();
     }
 
     public void Dispose()

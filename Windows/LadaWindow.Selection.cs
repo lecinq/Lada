@@ -23,7 +23,10 @@ public partial class LadaWindow
         // silently never reach the window. Same fix already used for title
         // editing (ActivateForTitleEdit) and drag-start.
         if (_hwnd != IntPtr.Zero)
+        {
             NativeMethods.SetForegroundWindow(_hwnd);
+            ReassertBackdropPairing();
+        }
         Focus();
     }
 

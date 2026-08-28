@@ -17,6 +17,7 @@ public partial class LadaWindow
     private string _iconId = "table";
     private string _iconColor = "#5B8DEF";
     private IDisposable? _iconPickerOutsideClickWatch;
+    private ContextMenu? _savedColorContextMenu;
     // Shared by every swatch in the currently-open icon picker popup (see
     // PopulatePicker) so that dragging the color sliders can update every
     // swatch live by mutating this one brush's Color, the same way the
@@ -35,19 +36,31 @@ public partial class LadaWindow
         PickerPopup.Opened += (_, _) =>
         {
             _iconPickerOutsideClickWatch = OutsideClickWatcher.Watch(
-                (x, y) =>
-                {
-                    var source = PresentationSource.FromVisual(PickerPopup.Child) as HwndSource;
-                    return source is not null && OutsideClickWatcher.IsPointInsideWindow(source.Handle, x, y);
-                },
+                IsPointInsideIconPickerSurface,
                 () => Dispatcher.BeginInvoke(() => PickerPopup.IsOpen = false));
         };
 
         PickerPopup.Closed += (_, _) =>
         {
+            if (_savedColorContextMenu is not null)
+                _savedColorContextMenu.IsOpen = false;
+            _savedColorContextMenu = null;
             _iconPickerOutsideClickWatch?.Dispose();
             _iconPickerOutsideClickWatch = null;
         };
+    }
+
+    private bool IsPointInsideIconPickerSurface(int x, int y)
+    {
+        if (PresentationSource.FromVisual(PickerPopup.Child) is HwndSource pickerSource
+            && OutsideClickWatcher.IsPointInsideWindow(pickerSource.Handle, x, y))
+        {
+            return true;
+        }
+
+        return _savedColorContextMenu is { IsOpen: true } menu
+            && PresentationSource.FromVisual(menu) is HwndSource menuSource
+            && OutsideClickWatcher.IsPointInsideWindow(menuSource.Handle, x, y);
     }
 
     private void UpdateIconButtonVisual()
@@ -72,7 +85,7 @@ public partial class LadaWindow
     // a fixed color. In Midnight it tints the glyph itself, as before.
     private Brush IconGlyphFillBrush() =>
         _themeManager?.Current == AppTheme.Modernism
-            ? ContrastBrush(_iconColor)
+            ? ColorContrast.ForegroundBrush(_iconColor)
             : new SolidColorBrush((Color)ColorConverter.ConvertFromString(_iconColor)!);
 
     private void IconButton_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -141,12 +154,8 @@ public partial class LadaWindow
             };
             dot.MouseLeftButtonDown += (_, e) =>
             {
-                _iconColor = hex;
-                UpdateIconButtonVisual();
-                ApplyThemeColors();
-                RefreshDynamicContent();
+                ApplyIconColor(hex);
                 PopulatePicker();
-                LayoutChanged?.Invoke(this, System.EventArgs.Empty);
                 e.Handled = true;
             };
             ColorPickerRow.Children.Add(dot);
@@ -167,14 +176,28 @@ public partial class LadaWindow
             };
             dot.MouseLeftButtonDown += (_, e) =>
             {
-                _iconColor = hex;
-                UpdateIconButtonVisual();
-                ApplyThemeColors();
-                RefreshDynamicContent();
+                ApplyIconColor(hex);
                 PopulatePicker();
-                LayoutChanged?.Invoke(this, System.EventArgs.Empty);
                 e.Handled = true;
             };
+
+            var menu = new ContextMenu();
+            var deleteItem = new MenuItem { Header = Strings.DeleteCustomColor };
+            deleteItem.Click += (_, _) =>
+            {
+                menu.IsOpen = false;
+                if (_customColorPaletteService?.Remove(hex) == true)
+                    PopulatePicker();
+            };
+            menu.Items.Add(deleteItem);
+            menu.Opened += (_, _) => _savedColorContextMenu = menu;
+            menu.Closed += (_, _) =>
+            {
+                if (ReferenceEquals(_savedColorContextMenu, menu))
+                    _savedColorContextMenu = null;
+            };
+            AttachOutsideClickAutoClose(menu);
+            dot.ContextMenu = menu;
             SavedColorsRow.Children.Add(dot);
         }
 

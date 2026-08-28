@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using Lada.Models;
@@ -12,45 +13,69 @@ public sealed class TrayIconManager : IDisposable
     private readonly ToolStripMenuItem _midnightMenuItem;
     private readonly ToolStripMenuItem _modernismMenuItem;
     private readonly ToolStripMenuItem _andersonMenuItem;
+    private readonly ToolStripMenuItem _forecastMenuItem;
+    private readonly ToolStripMenuItem _howardMenuItem;
     private readonly ToolStripMenuItem _frenchMenuItem;
     private readonly ToolStripMenuItem _englishMenuItem;
     private readonly ToolStripMenuItem _hoverFadeMenuItem;
     private readonly ToolStripMenuItem _magnetismMenuItem;
     private readonly ToolStripMenuItem _perspectiveTiltMenuItem;
     private readonly ToolStripMenuItem _hudGlowMenuItem;
+    private readonly ToolStripMenuItem _backgroundBlurMenuItem;
     private readonly ToolStripMenuItem _newLadaItem;
+    private readonly ToolStripMenuItem _newGmailLadaItem;
     private readonly ToolStripMenuItem _newWidgetItem;
     private readonly ToolStripMenuItem _widgetChromeMenuItem;
     private readonly ToolStripMenuItem _showAllItem;
     private readonly ToolStripMenuItem _arrangeItem;
     private readonly ToolStripMenuItem _themeMenu;
+    private readonly ToolStripMenuItem _forecastDebugMenu;
+    private readonly Dictionary<ForecastDebugWeather, ToolStripMenuItem> _forecastDebugItems = new();
     private readonly ToolStripMenuItem _languageMenu;
     private readonly ToolStripMenuItem _aboutItem;
+    private readonly ToolStripMenuItem _customizeItem;
     private readonly ToolStripMenuItem _quitItem;
 
     public event Action? NewLadaRequested;
+    public event Action? NewGmailLadaRequested;
     public event Action? ShowAllRequested;
     public event Action? ArrangeRequested;
     public event Action? ExitRequested;
     public event Action<AppTheme>? ThemeChangeRequested;
+    public event Action<ForecastDebugWeather>? ForecastDebugWeatherRequested;
     public event Action<AppLanguage>? LanguageChangeRequested;
     public event Action<bool>? HoverFadeToggleRequested;
     public event Action<bool>? MagnetismToggleRequested;
     public event Action<bool>? PerspectiveTiltToggleRequested;
     public event Action<bool>? HudGlowToggleRequested;
+    public event Action<bool>? BackgroundBlurToggleRequested;
     public event Action<WidgetComponentType>? NewWidgetRequested;
     public event Action<bool>? WidgetChromeToggleRequested;
     public event Action? AboutRequested;
+    public event Action? CustomizeRequested;
 
     public TrayIconManager()
     {
         _midnightMenuItem = new ToolStripMenuItem("Midnight", null, (_, _) => ThemeChangeRequested?.Invoke(AppTheme.Midnight));
         _modernismMenuItem = new ToolStripMenuItem("Modernism", null, (_, _) => ThemeChangeRequested?.Invoke(AppTheme.Modernism));
         _andersonMenuItem = new ToolStripMenuItem("Anderson", null, (_, _) => ThemeChangeRequested?.Invoke(AppTheme.Anderson));
+        _forecastMenuItem = new ToolStripMenuItem("Forecast", null, (_, _) => ThemeChangeRequested?.Invoke(AppTheme.Forecast));
+        _howardMenuItem = new ToolStripMenuItem("Howard", null, (_, _) => ThemeChangeRequested?.Invoke(AppTheme.Howard));
         _themeMenu = new ToolStripMenuItem();
         _themeMenu.DropDownItems.Add(_midnightMenuItem);
         _themeMenu.DropDownItems.Add(_modernismMenuItem);
         _themeMenu.DropDownItems.Add(_andersonMenuItem);
+        _themeMenu.DropDownItems.Add(_forecastMenuItem);
+        _themeMenu.DropDownItems.Add(_howardMenuItem);
+
+        _forecastDebugMenu = new ToolStripMenuItem();
+        foreach (ForecastDebugWeather weather in Enum.GetValues<ForecastDebugWeather>())
+        {
+            var item = new ToolStripMenuItem("", null, (_, _) => ForecastDebugWeatherRequested?.Invoke(weather));
+            _forecastDebugItems.Add(weather, item);
+            _forecastDebugMenu.DropDownItems.Add(item);
+        }
+        _forecastDebugMenu.Visible = false;
 
         // Language names are always shown in their own language, regardless
         // of which one is currently active, so these two labels never change.
@@ -76,7 +101,12 @@ public sealed class TrayIconManager : IDisposable
         _hudGlowMenuItem.CheckOnClick = true;
         _hudGlowMenuItem.Click += (_, _) => HudGlowToggleRequested?.Invoke(_hudGlowMenuItem.Checked);
 
+        _backgroundBlurMenuItem = new ToolStripMenuItem("", null, (_, _) => { });
+        _backgroundBlurMenuItem.CheckOnClick = true;
+        _backgroundBlurMenuItem.Click += (_, _) => BackgroundBlurToggleRequested?.Invoke(_backgroundBlurMenuItem.Checked);
+
         _newLadaItem = new ToolStripMenuItem("", null, (_, _) => NewLadaRequested?.Invoke());
+        _newGmailLadaItem = new ToolStripMenuItem("", null, (_, _) => NewGmailLadaRequested?.Invoke());
 
         _newWidgetItem = new ToolStripMenuItem();
         foreach (WidgetComponentType type in Enum.GetValues<WidgetComponentType>())
@@ -93,21 +123,26 @@ public sealed class TrayIconManager : IDisposable
         _showAllItem = new ToolStripMenuItem("", null, (_, _) => ShowAllRequested?.Invoke());
         _arrangeItem = new ToolStripMenuItem("", null, (_, _) => ArrangeRequested?.Invoke());
         _aboutItem = new ToolStripMenuItem("", null, (_, _) => AboutRequested?.Invoke());
+        _customizeItem = new ToolStripMenuItem("", null, (_, _) => CustomizeRequested?.Invoke());
         _quitItem = new ToolStripMenuItem("", null, (_, _) => ExitRequested?.Invoke());
 
         var menu = new ContextMenuStrip();
         menu.Items.Add(_newLadaItem);
+        menu.Items.Add(_newGmailLadaItem);
         menu.Items.Add(_newWidgetItem);
         menu.Items.Add(_showAllItem);
         menu.Items.Add(_arrangeItem);
         menu.Items.Add(_themeMenu);
+        menu.Items.Add(_forecastDebugMenu);
         menu.Items.Add(_languageMenu);
         menu.Items.Add(_hoverFadeMenuItem);
         menu.Items.Add(_magnetismMenuItem);
         menu.Items.Add(_perspectiveTiltMenuItem);
         menu.Items.Add(_hudGlowMenuItem);
+        menu.Items.Add(_backgroundBlurMenuItem);
         menu.Items.Add(_widgetChromeMenuItem);
         menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(_customizeItem);
         menu.Items.Add(_aboutItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_quitItem);
@@ -128,6 +163,9 @@ public sealed class TrayIconManager : IDisposable
         _midnightMenuItem.Checked = theme == AppTheme.Midnight;
         _modernismMenuItem.Checked = theme == AppTheme.Modernism;
         _andersonMenuItem.Checked = theme == AppTheme.Anderson;
+        _forecastMenuItem.Checked = theme == AppTheme.Forecast;
+        _howardMenuItem.Checked = theme == AppTheme.Howard;
+        _forecastDebugMenu.Visible = theme == AppTheme.Forecast;
 
         ApplyThemeToTrayMenu(theme);
     }
@@ -143,6 +181,7 @@ public sealed class TrayIconManager : IDisposable
             // the root menu's renderer automatically, so each needs its own
             // instance to pick up rounded corners, colors, and the check glyph.
             _themeMenu.DropDown.Renderer = new ThemedToolStripRenderer(colors);
+            _forecastDebugMenu.DropDown.Renderer = new ThemedToolStripRenderer(colors);
             _languageMenu.DropDown.Renderer = new ThemedToolStripRenderer(colors);
             ApplyForeColorRecursive(menu.Items, colors.Text);
         }
@@ -166,6 +205,12 @@ public sealed class TrayIconManager : IDisposable
         _englishMenuItem.Checked = language == AppLanguage.English;
     }
 
+    public void SetActiveForecastDebugWeather(ForecastDebugWeather weather)
+    {
+        foreach (var pair in _forecastDebugItems)
+            pair.Value.Checked = pair.Key == weather;
+    }
+
     public void SetHoverFadeEnabled(bool enabled)
     {
         _hoverFadeMenuItem.Checked = enabled;
@@ -186,6 +231,11 @@ public sealed class TrayIconManager : IDisposable
         _hudGlowMenuItem.Checked = enabled;
     }
 
+    public void SetBackgroundBlurEnabled(bool enabled)
+    {
+        _backgroundBlurMenuItem.Checked = enabled;
+    }
+
     public void SetWidgetChromeEnabled(bool enabled)
     {
         _widgetChromeMenuItem.Checked = enabled;
@@ -194,6 +244,7 @@ public sealed class TrayIconManager : IDisposable
     public void RefreshTexts()
     {
         _newLadaItem.Text = Strings.NewLada;
+        _newGmailLadaItem.Text = Strings.NewGmailLadaMenuItem;
         _newWidgetItem.Text = Strings.NewWidgetTrayMenuItem;
         foreach (ToolStripMenuItem item in _newWidgetItem.DropDownItems)
         {
@@ -202,13 +253,18 @@ public sealed class TrayIconManager : IDisposable
         _showAllItem.Text = Strings.ShowAllLadas;
         _arrangeItem.Text = Strings.ArrangeLadasMenuItem;
         _themeMenu.Text = Strings.ThemeMenu;
+        _forecastDebugMenu.Text = Strings.ForecastDebugMenu;
+        foreach (var pair in _forecastDebugItems)
+            pair.Value.Text = Strings.ForecastDebugWeatherLabel(pair.Key);
         _languageMenu.Text = Strings.LanguageMenu;
         _hoverFadeMenuItem.Text = Strings.HoverFadeMenuItem;
         _magnetismMenuItem.Text = Strings.MagnetismMenuItem;
         _perspectiveTiltMenuItem.Text = Strings.PerspectiveTiltMenuItem;
         _hudGlowMenuItem.Text = Strings.HudGlowMenuItem;
+        _backgroundBlurMenuItem.Text = Strings.BackgroundBlurMenuItem;
         _widgetChromeMenuItem.Text = Strings.WidgetChromeMenuItem;
         _aboutItem.Text = Strings.AboutMenuItem;
+        _customizeItem.Text = Strings.CustomizeMenuItem;
         _quitItem.Text = Strings.Quit;
     }
 

@@ -48,11 +48,17 @@
                         https://github.com/lecinq/Lada
                     </Hyperlink>
                 </TextBlock>
-                <TextBlock FontFamily="{DynamicResource LadaFontFamily}" FontSize="12">
+                <TextBlock FontFamily="{DynamicResource LadaFontFamily}" FontSize="12" Margin="0,0,0,8">
                     <Hyperlink NavigateUri="https://www.linkedin.com/in/quentin-ecrepont/" RequestNavigate="Hyperlink_RequestNavigate"
                                Foreground="{DynamicResource AccentBrush}">
                         linkedin.com/in/quentin-ecrepont
                     </Hyperlink>
+                </TextBlock>
+                <TextBlock FontFamily="{DynamicResource LadaFontFamily}" FontSize="12">
+                    <Hyperlink x:Name="WeatherAttributionLink"
+                               NavigateUri="https://open-meteo.com/"
+                               RequestNavigate="Hyperlink_RequestNavigate"
+                               Foreground="{DynamicResource AccentBrush}"/>
                 </TextBlock>
             </StackPanel>
         </StackPanel>

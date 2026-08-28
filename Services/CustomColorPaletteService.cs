@@ -31,4 +31,16 @@ public sealed class CustomColorPaletteService
         _colors.Add(hex);
         Changed?.Invoke();
     }
+
+    public bool Remove(string hex)
+    {
+        var index = _colors.FindIndex(color =>
+            string.Equals(color, hex, StringComparison.OrdinalIgnoreCase));
+        if (index < 0)
+            return false;
+
+        _colors.RemoveAt(index);
+        Changed?.Invoke();
+        return true;
+    }
 }

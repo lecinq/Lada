@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
@@ -13,6 +13,11 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <RootNamespace>Lada</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <WindowsPackageType>None</WindowsPackageType>
+    <!-- Initialize explicitly from App.OnStartup so loading Lada.dll in the
+         test host does not execute a native runtime bootstrapper. -->
+    <WindowsAppSdkBootstrapInitialize>false</WindowsAppSdkBootstrapInitialize>
+    <WindowsAppSdkAutoInitialize>false</WindowsAppSdkAutoInitialize>
   </PropertyGroup>
 
   <ItemGroup>
@@ -30,6 +35,12 @@
          hand-rolling (unlike Battery/Memory, which stay on plain P/Invoke
          below). -->
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
+
+    <!-- Official Win32 Desktop Acrylic controller. Unlike the raw DWM
+         backdrop flag, this lets a non-activating companion HWND keep an
+         explicit active backdrop configuration. -->
+    <PackageReference Include="Microsoft.WindowsAppSDK.Foundation" Version="2.1.0" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="2.2.0" />
   </ItemGroup>
 
   <!-- Lada.Tests lives inside this project's own directory; without this,

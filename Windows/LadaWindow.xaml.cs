@@ -41,7 +41,7 @@ public partial class LadaWindow : Window
     public event Action<WidgetComponentType>? NewWidgetRequested;
     public event Action? DeleteRequested;
 
-    public LadaWindow(LadaLayout layout, ThemeManager themeManager, LocalizationManager localizationManager, HoverFadeManager hoverFadeManager, MagnetismManager magnetismManager, PerspectiveTiltManager perspectiveTiltManager, HudGlowManager hudGlowManager, WidgetChromeManager widgetChromeManager, CustomColorPaletteService customColorPaletteService, HardwareMonitorService hardwareMonitorService, GmailAuthService gmailAuthService, GmailPollingService gmailPollingService, Func<IEnumerable<LadaWindow>> getAllLadaWindows)
+    public LadaWindow(LadaLayout layout, ThemeManager themeManager, LocalizationManager localizationManager, HoverFadeManager hoverFadeManager, MagnetismManager magnetismManager, PerspectiveTiltManager perspectiveTiltManager, HudGlowManager hudGlowManager, BackgroundBlurManager backgroundBlurManager, AppearanceCustomizationManager appearanceCustomizationManager, WidgetChromeManager widgetChromeManager, CustomColorPaletteService customColorPaletteService, AndersonColorSyncManager andersonColorSyncManager, HardwareMonitorService hardwareMonitorService, GmailAuthService gmailAuthService, GmailPollingService gmailPollingService, WeatherService weatherService, Func<IEnumerable<LadaWindow>> getAllLadaWindows)
     {
         InitializeComponent();
 
@@ -73,8 +73,12 @@ public partial class LadaWindow : Window
         TitleTextBlock.Text = layout.Title;
 
         _iconId = layout.IconId;
-        _iconColor = layout.IconColor;
+        _iconColor = themeManager.Current == AppTheme.Anderson && andersonColorSyncManager.Enabled
+            ? andersonColorSyncManager.Color
+            : layout.IconColor;
+        InitializeAndersonColorSync(andersonColorSyncManager);
         _autoSortEnabled = _tabs[_activeTabIndex].AutoSortEnabled;
+        InitializeForecastWeather(weatherService);
         InitializeTheme(themeManager);
         InitializeLocalization(localizationManager);
 
@@ -96,6 +100,8 @@ public partial class LadaWindow : Window
         InitializeHoverFade(hoverFadeManager);
         InitializePerspectiveTilt(perspectiveTiltManager);
         InitializeHudGlow(hudGlowManager);
+        InitializeBackgroundBlur(backgroundBlurManager);
+        InitializeAppearanceCustomization(appearanceCustomizationManager);
 
         RenderAllItems();
 
@@ -143,6 +149,11 @@ public partial class LadaWindow : Window
         _widgetChromeManager = widgetChromeManager;
         if (_isWidget)
         {
+            // Apply the visibility before Show() so a content-only widget
+            // never flashes its title bar for one frame. Content fitting is
+            // still deferred until Loaded (see UpdateWidgetChromeVisibility).
+            UpdateWidgetChromeVisibility();
+
             // Deferred to Loaded rather than run here: this window has no
             // presentation source yet at this point in the constructor
             // (Show() only happens after the constructor returns, back in
@@ -220,7 +231,10 @@ public partial class LadaWindow : Window
         var visible = _widgetChromeManager.Enabled;
         TitleBar.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
         TitleBarRow.Height = visible ? new GridLength(TitleBarHeight) : new GridLength(0);
-        FitWindowToContent();
+        if (IsLoaded)
+        {
+            FitWindowToContent();
+        }
     }
 
     // TitleBarHeight is a fixed constant everywhere else (a normal lada
@@ -285,6 +299,7 @@ public partial class LadaWindow : Window
                 // no-op cleanup correctly once DragMove() returns.
                 ((UIElement)sender).ReleaseMouseCapture();
                 DragMove();
+                ReassertBackdropPairing();
                 return;
             }
 

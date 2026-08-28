@@ -14,6 +14,7 @@ public partial class AboutWindow : Window
         Title = Strings.AboutMenuItem;
         MessageText.Text = Strings.AboutMessage;
         OpenSourceLabel.Text = Strings.AboutOpenSource;
+        WeatherAttributionLink.Inlines.Add(Strings.WeatherDataAttribution);
     }
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)

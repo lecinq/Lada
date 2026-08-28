@@ -5,7 +5,7 @@
         <ResourceDictionary Source="MenuStyles.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
-    <SolidColorBrush x:Key="LadaBackgroundBrush" Color="#E00D0F14"/>
+    <SolidColorBrush x:Key="LadaBackgroundBrush" Color="#FF000080"/>
     <SolidColorBrush x:Key="LadaBorderBrush" Color="#2A2F3A"/>
     <SolidColorBrush x:Key="LadaBorderHoverBrush" Color="#3D4354"/>
     <SolidColorBrush x:Key="AccentBrush" Color="#5B8DEF"/>
@@ -19,6 +19,7 @@
     <CornerRadius x:Key="LadaCornerRadius">12</CornerRadius>
     <CornerRadius x:Key="ColorPickerCornerRadius">8</CornerRadius>
     <DropShadowEffect x:Key="LadaShadowEffect" Color="Black" Opacity="0.4" BlurRadius="24" ShadowDepth="8" Direction="270"/>
+    <x:Null x:Key="LadaTextEffect"/>
     <FontFamily x:Key="LadaFontFamily">Segoe UI</FontFamily>
 
 </ResourceDictionary>

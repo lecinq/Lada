@@ -31,22 +31,31 @@ public sealed class LayoutManager : IDisposable
     public LadaLayoutCollection Load()
     {
         if (!File.Exists(_filePath))
-            return new LadaLayoutCollection();
+        {
+            var empty = new LadaLayoutCollection();
+            empty.ApplyMigrations();
+            return empty;
+        }
 
         try
         {
             var json = File.ReadAllText(_filePath);
-            return JsonSerializer.Deserialize<LadaLayoutCollection>(json, LadaJson.Options)
-                   ?? new LadaLayoutCollection();
+            var layout = JsonSerializer.Deserialize<LadaLayoutCollection>(json, LadaJson.Options)
+                         ?? new LadaLayoutCollection();
+            layout.ApplyMigrations();
+            return layout;
         }
         catch (Exception ex) when (ex is JsonException or IOException)
         {
-            return new LadaLayoutCollection();
+            var empty = new LadaLayoutCollection();
+            empty.ApplyMigrations();
+            return empty;
         }
     }
 
     public void SaveImmediate(LadaLayoutCollection layout)
     {
+        layout.ApplyMigrations();
         var directory = Path.GetDirectoryName(_filePath)!;
         Directory.CreateDirectory(directory);
 

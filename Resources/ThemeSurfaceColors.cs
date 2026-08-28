@@ -6,7 +6,8 @@ namespace Lada.Resources;
 // A second, deliberately duplicated source of truth for each theme's
 // surface colors/geometry (background/border/text/hover/accent, corner
 // radius, border thickness), transcribed from the same values in
-// Styles/Theme.xaml / ThemeModernism.xaml / ThemeAnderson.xaml. WinForms
+// Styles/Theme.xaml / ThemeModernism.xaml / ThemeAnderson.xaml /
+// ThemeForecast.xaml / ThemeHoward.xaml. WinForms
 // can't read a WPF ResourceDictionary directly, so the tray icon's
 // ContextMenuStrip (System.Drawing types) needs its own lookup -- matching
 // how Resources/ColorPalette.cs's icon accent hex strings are already a
@@ -31,13 +32,27 @@ public static class ThemeSurfaceColors
             Accent: ColorTranslator.FromHtml("#33FF33"),
             CornerRadius: 0,
             BorderThickness: 1),
-        // ColorTranslator.FromHtml doesn't accept 8-digit ARGB hex (Midnight's
-        // LadaBackgroundBrush is #E00D0F14 for its ~88%-opacity background)
-        // -- a WinForms ToolStripDropDown can't be alpha-blended like a WPF
-        // AllowsTransparency window anyway, so this uses the opaque 6-digit
-        // RGB portion instead of attempting a translucent tray menu.
+        AppTheme.Forecast => (
+            Background: ColorTranslator.FromHtml("#09131F"),
+            Border: ColorTranslator.FromHtml("#294B66"),
+            Text: ColorTranslator.FromHtml("#EAF5FF"),
+            Hover: ColorTranslator.FromHtml("#62B7FF"),
+            Accent: ColorTranslator.FromHtml("#62B7FF"),
+            CornerRadius: 12,
+            BorderThickness: 1),
+        // WinForms tray menus cannot use the HUD's translucent WPF surface;
+        // keep the same near-black hue as an opaque menu for legibility.
+        AppTheme.Howard => (
+            Background: ColorTranslator.FromHtml("#061018"),
+            Border: ColorTranslator.FromHtml("#00E5FF"),
+            Text: ColorTranslator.FromHtml("#F4FCFF"),
+            Hover: ColorTranslator.FromHtml("#123F4A"),
+            Accent: ColorTranslator.FromHtml("#00E5FF"),
+            CornerRadius: 8,
+            BorderThickness: 1),
+        // Midnight uses the CSS/X11 navy value requested for its surface.
         _ => (
-            Background: ColorTranslator.FromHtml("#0D0F14"),
+            Background: ColorTranslator.FromHtml("#000080"),
             Border: ColorTranslator.FromHtml("#2A2F3A"),
             Text: ColorTranslator.FromHtml("#E8EAED"),
             Hover: ColorTranslator.FromHtml("#5B8DEF"),

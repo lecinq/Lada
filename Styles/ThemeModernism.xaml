@@ -19,6 +19,7 @@
     <CornerRadius x:Key="LadaCornerRadius">0</CornerRadius>
     <CornerRadius x:Key="ColorPickerCornerRadius">0</CornerRadius>
     <x:Null x:Key="LadaShadowEffect"/>
+    <x:Null x:Key="LadaTextEffect"/>
     <FontFamily x:Key="LadaFontFamily">Segoe UI</FontFamily>
 
 </ResourceDictionary>

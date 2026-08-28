@@ -4,5 +4,7 @@ public enum AppTheme
 {
     Midnight,
     Modernism,
-    Anderson
+    Anderson,
+    Forecast,
+    Howard
 }

@@ -16,6 +16,7 @@ public partial class LadaWindow
     private void OnLanguageChanged()
     {
         UpdateIconButtonVisual();
+        UpdateAndersonColorSyncButton();
         InitializeSortMenu();
         RefreshDynamicContent();
     }

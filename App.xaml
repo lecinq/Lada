@@ -3,8 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Application.Resources>
         <ResourceDictionary>
-            <!-- Swapped at runtime by ThemeManager between Theme.xaml (Midnight)
-                 and ThemeModernism.xaml. The two Styles below stay outside this
+            <!-- Swapped at runtime by ThemeManager between the theme dictionaries.
+                 The two Styles below stay outside this
                  merge point so they survive the swap: both themes' brushes share
                  the same resource keys, so a Style that references those keys
                  via DynamicResource works unchanged under either theme. -->
@@ -12,11 +12,23 @@
                 <ResourceDictionary Source="Styles/Theme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
+            <!-- Most runtime-built widget/tab/mail labels have no named
+                 style. This one-property implicit style gives Howard its
+                 readability shadow too; every other theme resolves the
+                 effect to null and keeps its previous rendering. -->
+            <Style TargetType="TextBlock">
+                <Setter Property="Effect" Value="{DynamicResource LadaTextEffect}"/>
+            </Style>
+            <Style TargetType="TextBox">
+                <Setter Property="Effect" Value="{DynamicResource LadaTextEffect}"/>
+            </Style>
+
             <Style x:Key="LadaTitleTextStyle" TargetType="TextBlock">
                 <Setter Property="Foreground" Value="{DynamicResource TitleTextBrush}"/>
                 <Setter Property="FontFamily" Value="{DynamicResource LadaFontFamily}"/>
                 <Setter Property="FontSize" Value="13"/>
                 <Setter Property="FontWeight" Value="Medium"/>
+                <Setter Property="Effect" Value="{DynamicResource LadaTextEffect}"/>
             </Style>
 
             <Style x:Key="IconLabelStyle" TargetType="TextBlock">
@@ -25,10 +37,11 @@
                 <Setter Property="FontSize" Value="11"/>
                 <Setter Property="TextAlignment" Value="Center"/>
                 <Setter Property="TextWrapping" Value="Wrap"/>
+                <Setter Property="Effect" Value="{DynamicResource LadaTextEffect}"/>
             </Style>
 
-            <!-- Both read ColorPickerCornerRadius, which is 8 in Midnight and 0
-                 in Modernism/Anderson, since those two themes stay square everywhere
+            <!-- Both read ColorPickerCornerRadius, which is 8 in Midnight/Forecast,
+                 6 in Howard and 0 in Modernism/Anderson, since those two themes stay square everywhere
                  else, so the color picker's slider thumb and hex box follow suit
                  instead of standing out as the one rounded thing left. -->
             <Style x:Key="ColorPickerTrackRepeatButtonStyle" TargetType="RepeatButton">
@@ -62,7 +75,7 @@
                                     <Thumb Width="16" Height="16">
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="Thumb">
-                                                <Border Background="{DynamicResource TitleTextBrush}"
+                                                <Border Background="{DynamicResource ColorPickerThumbBackgroundBrush}"
                                                         BorderBrush="{DynamicResource LadaBorderBrush}"
                                                         BorderThickness="1"
                                                         CornerRadius="{DynamicResource ColorPickerCornerRadius}"/>
@@ -77,6 +90,7 @@
             </Style>
 
             <Style x:Key="ColorHexBoxStyle" TargetType="TextBox">
+                <Setter Property="Effect" Value="{DynamicResource LadaTextEffect}"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="TextBox">

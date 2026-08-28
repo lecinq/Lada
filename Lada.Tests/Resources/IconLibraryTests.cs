@@ -29,4 +29,17 @@ public class IconLibraryTests
     {
         Assert.Contains(IconLibrary.Icons, i => i.Id == "table");
     }
+
+    [Fact]
+    public void ColorSaveAction_IsNotASelectableLadaIcon()
+    {
+        Assert.DoesNotContain(IconLibrary.Icons, icon => icon.Id == "add");
+    }
+
+    [Fact]
+    public void ColorSynchronizationActionIcons_HaveParseablePathData()
+    {
+        Assert.False(Geometry.Parse(IconLibrary.ShareColorAction.PathData).IsEmpty());
+        Assert.False(Geometry.Parse(IconLibrary.IndependentColorsAction.PathData).IsEmpty());
+    }
 }

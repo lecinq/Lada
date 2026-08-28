@@ -71,6 +71,40 @@ public class LayoutManagerTests : IDisposable
     }
 
     [Fact]
+    public void Load_MigratesLegacyWidgetChromeToHidden()
+    {
+        File.WriteAllText(_filePath, """
+            {
+              "widgetChromeVisible": true,
+              "ladas": []
+            }
+            """);
+        var manager = new LayoutManager(_filePath);
+
+        var loaded = manager.Load();
+
+        Assert.False(loaded.WidgetChromeVisible);
+        Assert.Equal(LadaLayoutCollection.CurrentSettingsVersion, loaded.SettingsVersion);
+    }
+
+    [Fact]
+    public void Load_PreservesExplicitWidgetChromeChoiceAfterMigration()
+    {
+        File.WriteAllText(_filePath, """
+            {
+              "settingsVersion": 1,
+              "widgetChromeVisible": true,
+              "ladas": []
+            }
+            """);
+        var manager = new LayoutManager(_filePath);
+
+        var loaded = manager.Load();
+
+        Assert.True(loaded.WidgetChromeVisible);
+    }
+
+    [Fact]
     public async Task RequestSave_WritesFile_AfterDebounceInterval()
     {
         var manager = new LayoutManager(_filePath, TimeSpan.FromMilliseconds(50));

@@ -1,4 +1,4 @@
-# Rebuilds Lada in Release mode as a single framework-dependent exe,
+# Rebuilds Lada in Release mode as a framework-dependent app,
 # deploys it to %LocalAppData%\Lada\, and (re)registers it to start with
 # Windows. Re-run this any time there's a new build to push out.
 #
@@ -20,15 +20,18 @@ if (Test-Path $stagingDir) {
     Remove-Item $stagingDir -Recurse -Force
 }
 
-Write-Host "Publication (Release, single-file)..."
-dotnet publish (Join-Path $repoRoot "Lada.csproj") -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o $stagingDir
+Write-Host "Publication (Release)..."
+# Windows App SDK's documented Win32 Acrylic controller needs its projection
+# and bootstrap assemblies beside the executable. Keeping this as a compact
+# framework-dependent folder avoids the ~190 MB extracted single-file bundle.
+dotnet publish (Join-Path $repoRoot "Lada.csproj") -c Release -r win-x64 --self-contained false -o $stagingDir
 if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish a échoué."
 }
 
 Write-Host "Déploiement vers $installDir..."
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-Copy-Item (Join-Path $stagingDir "Lada.exe") $exePath -Force
+Copy-Item (Join-Path $stagingDir "*") $installDir -Recurse -Force
 
 Write-Host "Enregistrement du démarrage automatique..."
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "Lada" -Value "`"$exePath`""

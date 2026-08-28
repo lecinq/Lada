@@ -21,7 +21,7 @@
         </Setter>
     </Style>
 
-    <Style TargetType="Separator">
+    <Style x:Key="LadaMenuSeparatorStyle" TargetType="Separator">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Separator">
@@ -30,6 +30,16 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <!-- Separators hosted by Menu/ContextMenu do not use Separator's normal
+         implicit style: WPF replaces their style key with this special
+         MenuItem key. Register both forms so the custom line is used inside
+         every root menu and detached submenu instead of the light Windows
+         system separator. -->
+    <Style TargetType="Separator" BasedOn="{StaticResource LadaMenuSeparatorStyle}"/>
+    <Style x:Key="{x:Static MenuItem.SeparatorStyleKey}"
+           TargetType="Separator"
+           BasedOn="{StaticResource LadaMenuSeparatorStyle}"/>
 
     <Style TargetType="MenuItem">
         <Setter Property="Foreground" Value="{DynamicResource TitleTextBrush}"/>

@@ -9,6 +9,8 @@ public sealed class ThemeManager
     private const string MidnightSource = "Styles/Theme.xaml";
     private const string ModernismSource = "Styles/ThemeModernism.xaml";
     private const string AndersonSource = "Styles/ThemeAnderson.xaml";
+    private const string ForecastSource = "Styles/ThemeForecast.xaml";
+    private const string HowardSource = "Styles/ThemeHoward.xaml";
 
     public AppTheme Current { get; private set; } = AppTheme.Midnight;
 
@@ -20,6 +22,8 @@ public sealed class ThemeManager
         {
             AppTheme.Modernism => ModernismSource,
             AppTheme.Anderson => AndersonSource,
+            AppTheme.Forecast => ForecastSource,
+            AppTheme.Howard => HowardSource,
             _ => MidnightSource
         };
         var dictionary = new ResourceDictionary { Source = new Uri(source, UriKind.Relative) };

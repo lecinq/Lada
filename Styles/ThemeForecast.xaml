@@ -1,0 +1,28 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="MenuStyles.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- Forecast keeps Midnight's compact, translucent geometry. The live
+         condensation and rain are rendered by ForecastRainSurface behind
+         each window's content, so this dictionary stays asset-free. -->
+    <SolidColorBrush x:Key="LadaBackgroundBrush" Color="#E609131F"/>
+    <SolidColorBrush x:Key="LadaBorderBrush" Color="#294B66"/>
+    <SolidColorBrush x:Key="LadaBorderHoverBrush" Color="#477595"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#62B7FF"/>
+    <SolidColorBrush x:Key="TitleTextBrush" Color="#EAF5FF"/>
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#9CB4C8"/>
+    <SolidColorBrush x:Key="IconHoverBackgroundBrush" Color="#27374A"/>
+    <SolidColorBrush x:Key="SelectedBackgroundBrush" Color="#4D62B7FF"/>
+    <SolidColorBrush x:Key="SelectionMarqueeFillBrush" Color="#3362B7FF"/>
+
+    <Thickness x:Key="LadaBorderThickness">1</Thickness>
+    <CornerRadius x:Key="LadaCornerRadius">12</CornerRadius>
+    <CornerRadius x:Key="ColorPickerCornerRadius">8</CornerRadius>
+    <DropShadowEffect x:Key="LadaShadowEffect" Color="#02070C" Opacity="0.55" BlurRadius="26" ShadowDepth="8" Direction="270"/>
+    <x:Null x:Key="LadaTextEffect"/>
+    <FontFamily x:Key="LadaFontFamily">Segoe UI</FontFamily>
+
+</ResourceDictionary>
